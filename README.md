@@ -82,6 +82,7 @@ EOF
 systemctl enable node_exporter
 systemctl enable prometheus
 systemctl enable grafana-server
+systemctl enable alertmanager
 
 systemctl start node_exporter
 systemctl start prometheus
