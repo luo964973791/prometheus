@@ -8,6 +8,8 @@ tar -xzvf prometheus-2.34.0.tar.gz
 mv prometheus-2.34.0.linux-amd64 /data/grafana
 tar -xzvf node_exporter-1.3.1.linux-amd64.tar.gz
 mv node_exporter-1.3.1.linux-amd64 /data/node_exporter
+tar -xzvf alertmanager-0.23.0.linux-amd64.tar.gz
+mv alertmanager-0.23.0.linux-amd64 /data/alertmanager
 yum install ./grafana-enterprise-8.4.4-1.x86_64.rpm -y
 ```
 
@@ -45,6 +47,26 @@ Wants=network-online.target
 Type=simple
 User=root
 ExecStart=/data/node_exporter/node_exporter
+ 
+Restart=on-failure
+LimitNOFILE=65536
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+
+
+
+
+
+# alertmanager
+cat <<EOF | sudo tee /lib/systemd/system/alertmanager.service
+[Unit]
+Description=alertmanager
+After=alertmanager.target
+ 
+[Service]
+ExecStart=/data/alertmanager/alertmanager --config.file=/data/alertmanager/alertmanager.yml
  
 Restart=on-failure
 LimitNOFILE=65536
