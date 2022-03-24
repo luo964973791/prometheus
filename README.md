@@ -9,7 +9,6 @@ mv prometheus-2.34.0.linux-amd64 /data/grafana
 tar -xzvf node_exporter-1.3.1.linux-amd64.tar.gz
 mv node_exporter-1.3.1.linux-amd64 /data/node_exporter
 yum install ./grafana-enterprise-8.4.4-1.x86_64.rpm -y
-/usr/share/grafana/bin/grafana-cli plugins install  grafana-piechart-panel
 ```
 
 ### 二、添加各个服务的service
@@ -65,5 +64,6 @@ systemctl enable grafana-server
 systemctl start node_exporter
 systemctl start prometheus
 systemctl start grafana-server
+/usr/share/grafana/bin/grafana-cli plugins install  grafana-piechart-panel
 ```
 
