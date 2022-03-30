@@ -5,7 +5,7 @@ grafana-enterprise-8.4.4-1.x86_64.rpm
 prometheus-2.34.0.tar.gz
 node_exporter-1.3.1.linux-amd64.tar.gz
 tar -xzvf prometheus-2.34.0.tar.gz
-mv prometheus-2.34.0.linux-amd64 /data/grafana
+mv prometheus-2.34.0.linux-amd64 /data/prometheus
 tar -xzvf node_exporter-1.3.1.linux-amd64.tar.gz
 mv node_exporter-1.3.1.linux-amd64 /data/node_exporter
 tar -xzvf alertmanager-0.23.0.linux-amd64.tar.gz
