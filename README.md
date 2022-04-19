@@ -408,6 +408,7 @@ EOF
 ### 四、企业微信报警
 
 ```javascript
+[root@node1 ]# cat alertmanager-secret.yaml
 apiVersion: v1
 kind: Secret
 metadata:
