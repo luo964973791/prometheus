@@ -402,3 +402,118 @@ spec:
           secretName: grafana-config
 EOF
 ```
+
+
+
+### 四、企业微信报警
+
+```javascript
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/component: alert-router
+    app.kubernetes.io/instance: main
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 0.23.0
+  name: alertmanager-main
+  namespace: monitoring
+stringData:
+  alertmanager.yaml: |-
+    "global":
+      "resolve_timeout": "5m"
+      wechat_api_corp_id: 'wwxxxxxxxxxxxxxxxxx'
+      wechat_api_url: 'https://qyapi.weixin.qq.com/cgi-bin/'
+    "inhibit_rules":
+    - "equal":
+      - "namespace"
+      - "alertname"
+      "source_matchers":
+      - "severity = critical"
+      "target_matchers":
+      - "severity =~ warning|info"
+    - "equal":
+      - "namespace"
+      - "alertname"
+      "source_matchers":
+      - "severity = warning"
+      "target_matchers":
+      - "severity = info"
+    "receivers":
+    - name: "wechat"
+      wechat_configs:
+      - send_resolved: true
+        to_party: 1
+        to_user: "@all"
+        agent_id: 1xxxxxxx
+        api_secret: "tTZCPhgSEGRGmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
+    "route":
+      "group_by":
+      - "namespace"
+      - "alertname"
+      - "job"
+      "group_interval": "5m"
+      "group_wait": "30s"
+      "receiver": "wechat"
+      "repeat_interval": "12h"
+      "routes":
+      - "matchers":
+        - "alertname = Watchdog"
+        "receiver": "wechat"
+    templates:
+    - /etc/alertmanager/config/wechat.tmpl
+  wechat.tmpl: |-           # 告警模板
+    {{ define "wechat.default.message" }}
+    {{- if gt (len .Alerts.Firing) 0 -}}
+    {{- range $index, $alert := .Alerts -}}
+    {{- if eq $index 0 }}
+    ==========异常告警==========
+    告警类型: {{ $alert.Labels.alertname }}
+    告警级别: {{ $alert.Labels.severity }}
+    告警详情: {{ $alert.Annotations.message }}{{ $alert.Annotations.description}};{{$alert.Annotations.summary}}
+    故障时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+    {{- if gt (len $alert.Labels.instance) 0 }}
+    实例信息: {{ $alert.Labels.instance }}
+    {{- end }}
+    {{- if gt (len $alert.Labels.namespace) 0 }}
+    命名空间: {{ $alert.Labels.namespace }}
+    {{- end }}
+    {{- if gt (len $alert.Labels.node) 0 }}
+    节点信息: {{ $alert.Labels.node }}
+    {{- end }}
+    {{- if gt (len $alert.Labels.pod) 0 }}
+    实例名称: {{ $alert.Labels.pod }}
+    {{- end }}
+    ============END============
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- if gt (len .Alerts.Resolved) 0 -}}
+    {{- range $index, $alert := .Alerts -}}
+    {{- if eq $index 0 }}
+    ==========异常恢复==========
+    告警类型: {{ $alert.Labels.alertname }}
+    告警级别: {{ $alert.Labels.severity }}
+    告警详情: {{ $alert.Annotations.message }}{{ $alert.Annotations.description}};{{$alert.Annotations.summary}}
+    故障时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+    恢复时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+    {{- if gt (len $alert.Labels.instance) 0 }}
+    实例信息: {{ $alert.Labels.instance }}
+    {{- end }}
+    {{- if gt (len $alert.Labels.namespace) 0 }}
+    命名空间: {{ $alert.Labels.namespace }}
+    {{- end }}
+    {{- if gt (len $alert.Labels.node) 0 }}
+    节点信息: {{ $alert.Labels.node }}
+    {{- end }}
+    {{- if gt (len $alert.Labels.pod) 0 }}
+    实例名称: {{ $alert.Labels.pod }}
+    {{- end }}
+    ============END============
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+type: Opaque
+```
