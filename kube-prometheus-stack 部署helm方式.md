@@ -33,7 +33,7 @@ alertmanager:
     storage:
       volumeClaimTemplate:
         spec:
-          storageClassName: nfs-storage
+          storageClassName: csi-rbd-sc
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
@@ -43,7 +43,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: nfs-storage
+          storageClassName: csi-rbd-sc
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
