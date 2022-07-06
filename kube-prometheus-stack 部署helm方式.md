@@ -72,7 +72,7 @@ helm install prometheus  \
 kubectl -n monitoring get svc | grep grafana
 user: admin
 pass: prom-operator
-import > 1860
+import > 13105
 ```
 
 ### 五、查看告警是否正常
