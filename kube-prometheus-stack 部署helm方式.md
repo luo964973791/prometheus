@@ -16,7 +16,7 @@ docker run -d --name nfs \
     itsthenetwork/nfs-server-alpine:latest
 
 
-helm install nfs-subdir-external-provisioner \
+helm install nfs \
   --namespace=nfs-provisioner --create-namespace \
   --set storageClass.defaultClass=true \
   --set nfs.server=172.27.0.6 \
