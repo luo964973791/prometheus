@@ -4,6 +4,7 @@
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
 helm repo update
+yum install nfs-utils -y
 
 
 #如果测试环境没有存储,可以搭建个单机版的NFS
