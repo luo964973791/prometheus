@@ -56,7 +56,8 @@ prometheus:
           endpoint: "172.27.0.3:9000"
           access_key: "admin"
           secret_key: "fastadmin"
-          insecure: true 
+          insecure: true
+          signature_version2: false
   thanosServiceMonitor:
     enabled: true
   prometheusSpec:
