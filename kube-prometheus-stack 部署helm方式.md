@@ -12,7 +12,7 @@ docker run -d --name nfs \
     --privileged \
     --restart always \
     -p 2049:2049 \
-    -v /nfs-share:/nfs-share \
+    -v /data/nfs-share:/nfs-share \
     -e SHARED_DIRECTORY=/nfs-share \
     itsthenetwork/nfs-server-alpine:latest
 
@@ -20,7 +20,7 @@ docker run -d --name nfs \
 helm install nfs \
   --namespace=nfs-provisioner --create-namespace \
   --set storageClass.defaultClass=true \
-  --set nfs.server=172.27.0.6 \
+  --set nfs.server=172.27.0.3 \
   --set nfs.path=/ \
   nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
 ```
@@ -44,7 +44,7 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: csi-rbd-sc
+          storageClassName: nfs-client
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
@@ -62,7 +62,7 @@ helm install prometheus  \
   --set alertmanager.service.type=NodePort \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.persistence.enabled=true \
-  --set grafana.persistence.storageClassName=csi-rbd-sc \
+  --set grafana.persistence.storageClassName=nfs-client \
   -f values.yaml \
   prometheus-community/kube-prometheus-stack
 ```
