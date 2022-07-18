@@ -30,7 +30,7 @@ helm install nfs \
 
 ```javascript
 #准备对象存储,buket存数据，进入9000端口，创建名字为thanos的buket.
-docker run -d   --restart always   -p 9000:9000   --name minio   -v /data/minio/data:/data   -e "MINIO_ROOT_USER=minioadmin"   -e "MINIO_ROOT_PASSWORD=minioadmin"   minio/minio server /data --console-address ":9090"
+docker run -d   --restart always   -p 9000:9000   --name minio   -v /data/minio/data:/data   -e "MINIO_ROOT_USER=admin"   -e "MINIO_ROOT_PASSWORD=fastadmin"   minio/minio server /data --console-address ":9090"
 
 cat <<EOF>values.yaml 
 alertmanager:
