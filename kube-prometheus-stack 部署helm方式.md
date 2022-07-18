@@ -34,7 +34,7 @@ alertmanager:
     storage:
       volumeClaimTemplate:
         spec:
-          storageClassName: csi-rbd-sc
+          storageClassName: nfs-client
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
