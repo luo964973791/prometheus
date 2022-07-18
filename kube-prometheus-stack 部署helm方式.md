@@ -28,6 +28,9 @@ helm install nfs \
 ### 二、准备挂载.
 
 ```javascript
+#准备对象存储,buket存数据，进入9000端口，创建名字为thanos的buket.
+docker run -d   --restart always   -p 9000:9000   --name minio   -v /data/minio/data:/data   -e "MINIO_ROOT_USER=minioadmin"   -e "MINIO_ROOT_PASSWORD=minioadmin"   minio/minio server /data --console-address ":9090"
+
 cat <<EOF>values.yaml 
 alertmanager:
   alertmanagerSpec:
@@ -38,9 +41,29 @@ alertmanager:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 10Gi
+              storage: 2Gi
 prometheus:
+  thanosService:
+    enabled: true
+  extraSecret:
+    name: bucket-config
+    data:
+      objstore.yml: |
+        type: S3
+        config:
+          bucket: "thanos"
+          endpoint: "172.27.0.3:9000"
+          access_key: "admin"
+          secret_key: "fastadmin"
+          insecure: true 
+  thanosServiceMonitor:
+    enabled: true
   prometheusSpec:
+    disableCompaction: true
+    thanos:
+      objectStorageConfig:
+        name: bucket-config
+        key: objstore.yml
     storageSpec:
       volumeClaimTemplate:
         spec:
@@ -48,7 +71,18 @@ prometheus:
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
-              storage: 10Gi
+              storage: 2Gi
+thanosRuler:
+  enabled: true
+  thanosRulerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: nfs-client
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
 EOF
 ```
 
@@ -76,82 +110,53 @@ pass: prom-operator
 import > 13105
 ```
 
-### 五、查看告警是否正常
+### 五、部署thanos
 
 ```javascript
-http://x.x.x.x:30090/targets?search=
-#点击Unhealthy修复不正常的组件，例如
-kubectl edit cm/kube-proxy -n kube-system
-    metricsBindAddress: 0.0.0.0:10249
-kubectl delete pod -l k8s-app=kube-proxy -n kube-system
-```
-
-### 六、创建应用测试监控效果
-
-```javascript
-cat <<EOF> test.yaml 
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: example-app
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: example-app
-  template:
-    metadata:
-      labels:
-        app: example-app
-    spec:
-      containers:
-      - name: example-app
-        image: fabxc/instrumented_app
-        ports:
-        - name: web
-          containerPort: 8080
----
-kind: Service
-apiVersion: v1
-metadata:
-  name: example-app
-  labels:
-    app: example-app
-spec:
-  selector:
-    app: example-app
-  ports:
-  - name: web
-    port: 8080
+cat <<EOF>values.yaml 
+global:
+  storageClass: "nfs-client"
+existingObjstoreSecret: "bucket-config"
+query:
+  enabled: true
+  replicaLabel: [prometheus_replica]
+  dnsDiscovery:
+    enabled: true
+    sidecarsService: "prometheus-kube-prometheus-thanos-discovery"
+    sidecarsNamespace: "monitoring"
+bucketweb:
+  enabled: true
+queryFrontend:
+  enabled: true 
+compactor:
+  enabled: true
+  persistence:
+    enabled: true
+storegateway:
+  enabled: true 
+  persistence:
+    enabled: true
+ruler:
+  enabled: true
+  replicaLabel: prometheus_replica
+  alertmanagers:
+  - http://prometheus-kube-prometheus-alertmanager:9093
+  existingConfigmap: "prometheus-kube-prometheus-grafana-overview"
+  persistence:
+    enabled: true
 EOF
-
-kubectl apply -f test.yaml
 ```
 
-### 七、添加test应用监控
+### 六、启动thaons
 
 ```javascript
-cat <<EOF> monitoring-test.yaml 
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: example-app
-  labels:
-    team: frontend
-spec:
-  selector:
-    matchLabels:
-      app: example-app
-  endpoints:
-  - port: web
-EOF
-
-kubectl apply -f monitoring-test.yaml
+helm install thanos -f ./thanos.yaml bitnami/thanos -n monitoring
 ```
 
-### 八、查看test应用监控是否正常
+### 七、页面设置添加thanos新地址
 
 ```javascript
-http://x.x.x.x:30090/targets?search=
+http://thanos-query-frontend.monitoring:9090/
 ```
+
 
