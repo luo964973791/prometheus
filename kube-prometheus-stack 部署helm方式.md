@@ -98,6 +98,7 @@ helm install prometheus  \
   --set alertmanager.service.type=NodePort \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.persistence.enabled=true \
+  --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=nfs-client \
   -f values.yaml \
   prometheus-community/kube-prometheus-stack
