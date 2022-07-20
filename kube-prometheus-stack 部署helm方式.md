@@ -115,7 +115,7 @@ import > 13105
 ### 五、部署thanos
 
 ```javascript
-cat <<EOF>values.yaml 
+cat <<EOF>thanos.yaml 
 global:
   storageClass: "nfs-client"
 existingObjstoreSecret: "bucket-config"
