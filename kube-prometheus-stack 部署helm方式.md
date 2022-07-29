@@ -93,9 +93,11 @@ EOF
 ```javascript
 helm install prometheus  \
   --namespace monitoring --create-namespace \
-  --set grafana.service.type=NodePort \
-  --set prometheus.service.type=NodePort \
-  --set alertmanager.service.type=NodePort \
+  --set grafana.service.type=LoadBalancer \
+  --set prometheus.service.type=LoadBalancer \
+  --set alertmanager.service.type=LoadBalancer \
+  --set alertmanager.alertmanagerSpec.replicas=3 \
+  --set alertmanager.servicePerReplica.enabled=true \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.persistence.enabled=true \
   --set grafana.defaultDashboardsTimezone=cst \
