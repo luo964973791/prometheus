@@ -105,7 +105,6 @@ helm install prometheus  \
   --set grafana.persistence.enabled=true \
   --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=nfs-client \
-  -f values.yaml \
   prometheus-community/kube-prometheus-stack
 ```
 
