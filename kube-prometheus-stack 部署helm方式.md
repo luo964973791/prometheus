@@ -93,10 +93,14 @@ EOF
 ```javascript
 helm install prometheus  \
   --namespace monitoring --create-namespace \
-  --set grafana.service.type=LoadBalancer \
-  --set prometheus.service.type=LoadBalancer \
-  --set alertmanager.service.type=LoadBalancer \
+  --set grafana.service.type=NodePort \
+  --set prometheus.service.type=NodePort \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=nfs-client \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
+  --set alertmanager.service.type=NodePort \
   --set alertmanager.alertmanagerSpec.replicas=3 \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=nfs-client \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.persistence.enabled=true \
   --set grafana.defaultDashboardsTimezone=cst \
