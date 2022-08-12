@@ -97,7 +97,6 @@ helm install prometheus  \
   --set prometheus.service.type=LoadBalancer \
   --set alertmanager.service.type=LoadBalancer \
   --set alertmanager.alertmanagerSpec.replicas=3 \
-  --set alertmanager.servicePerReplica.enabled=true \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.persistence.enabled=true \
   --set grafana.defaultDashboardsTimezone=cst \
