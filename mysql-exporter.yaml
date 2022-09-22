@@ -1,0 +1,94 @@
+### 使用之前先创建exporter用户,并给与权限,进行mysql exporter链接状态探测,mysql -u root -p
+### CREATE USER 'exporter'@'%' IDENTIFIED BY 'Exporter123' WITH MAX_USER_CONNECTIONS 3;
+### GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'%';
+### grafana导入7362模板
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: mysql-exporter
+  template:
+    metadata:
+      labels:
+        k8s-app: mysql-exporter
+    spec:
+      containers:
+      - image: prom/mysqld-exporter
+        name: mysqld-exporter
+        args:
+        - --collect.info_schema.tables
+        - --collect.info_schema.innodb_tablespaces
+        - --collect.info_schema.innodb_metrics
+        - --collect.global_status
+        - --collect.global_variables
+        - --collect.slave_status
+        - --collect.info_schema.processlist
+        - --collect.perf_schema.tablelocks
+        - --collect.perf_schema.eventsstatements
+        - --collect.perf_schema.eventsstatementssum
+        - --collect.perf_schema.eventswaits
+        - --collect.auto_increment.columns
+        - --collect.binlog_size
+        - --collect.perf_schema.tableiowaits
+        - --collect.perf_schema.indexiowaits
+        - --collect.info_schema.userstats
+        - --collect.info_schema.clientstats
+        - --collect.info_schema.tablestats
+        - --collect.info_schema.schemastats
+        - --collect.perf_schema.file_events
+        - --collect.perf_schema.file_instances
+        - --collect.perf_schema.replication_group_member_stats
+        - --collect.perf_schema.replication_applier_status_by_worker
+        - --collect.slave_hosts
+        - --collect.info_schema.innodb_cmp
+        - --collect.info_schema.innodb_cmpmem
+        - --collect.info_schema.query_response_time
+        - --collect.engine_tokudb_status
+        - --collect.engine_innodb_status
+        env: 
+          - name: DATA_SOURCE_NAME
+            value: "exporter:Exporter123#@tcp(172.27.0.3:3306)/"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9104
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-exporter
+  namespace: monitoring
+  labels:
+    k8s-app: mysql-exporter
+spec:
+  ports:
+  - port: 9104
+    protocol: TCP
+    name: api-mysql
+  selector:
+    k8s-app: mysql-exporter
+  type: ClusterIP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mysql-exporter
+  namespace: monitoring
+  labels:
+    k8s-app: mysql-exporter
+spec:
+  endpoints:
+    - interval: 10s
+      port: api-mysql
+      scheme: http
+  selector:
+    matchLabels:
+      k8s-app: mysql-exporter
+  namespaceSelector:
+    matchNames:
+    - monitoring
