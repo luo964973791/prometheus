@@ -166,4 +166,9 @@ helm install thanos -f ./thanos.yaml bitnami/thanos -n monitoring
 http://thanos-query-frontend.monitoring:9090/
 ```
 
+### 八、部署loki
 
+```javascript
+helm repo add grafana https://grafana.github.io/helm-charts
+helm install loki grafana/loki-stack --set grafana.enabled=false,prometheus.enabled=false,prometheus.alertmanager.persistentVolume.enabled=false,prometheus.server.persistentVolume.enabled=false,loki.persistence.enabled=true,loki.persistence.storageClassName=longhorn,loki.persistence.size=5Gi -n monitoring
+```
