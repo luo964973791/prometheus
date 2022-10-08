@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-web-pvc
+  namespace: nginx
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: web
+ namespace: nginx
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   app: nginx
+ template:
+  metadata:
+   labels:
+    app: nginx
+  spec:
+   containers:
+   - name: nginx
+     image: nginx:latest
+     ports:
+     - containerPort: 80
+       name: web
+     resources:
+       requests:
+         memory: 50Mi
+         cpu: 50m
+     volumeMounts:
+     - name: www
+       mountPath: /usr/share/nginx/html
+       subPath: html
+     - name: nginx-default-conf
+       mountPath: /etc/nginx/conf.d/default.conf
+       subPath: default.conf
+   volumes:
+   - name: www
+     persistentVolumeClaim:
+       claimName: nginx-web-pvc
+   - name: nginx-default-conf
+     configMap:
+       name: nginx-default
+       items:
+       - key: default.conf
+         path: default.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: nginx
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
