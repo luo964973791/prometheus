@@ -115,6 +115,15 @@ kubectl -n monitoring get svc | grep grafana
 user: admin
 pass: prom-operator
 import > 13105
+
+[root@node1 ~]# kubectl edit cm -n  monitoring prometheus-grafana   #配置邮箱告警.
+grafana.ini: [analytics]
+[smtp]
+enabled = true
+host = smtp.qq.com:465
+user = 1145023603@qq.com
+password = owklbhkobjnabcde
+from_address = 1145023603@qq.com
 ```
 
 ### 五、部署thanos
