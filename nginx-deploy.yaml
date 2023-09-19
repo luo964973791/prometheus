@@ -1,71 +1,131 @@
----
+# nginx.yaml - 创建一个Namespace
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: Namespace
 metadata:
-  name: nginx-web-pvc
-  namespace: nginx
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: longhorn
+  name: nginx
+
 ---
+# nginx-deployment.yaml - 创建一个使用特定镜像的Deployment，包括资源请求和资源限制
 apiVersion: apps/v1
 kind: Deployment
 metadata:
- name: web
- namespace: nginx
+  name: nginx-deployment
+  namespace: nginx
 spec:
- replicas: 1
- selector:
-  matchLabels:
-   app: nginx
- template:
-  metadata:
-   labels:
-    app: nginx
-  spec:
-   containers:
-   - name: nginx
-     image: nginx:latest
-     ports:
-     - containerPort: 80
-       name: web
-     resources:
-       requests:
-         memory: 50Mi
-         cpu: 50m
-     volumeMounts:
-     - name: www
-       mountPath: /usr/share/nginx/html
-       subPath: html
-     - name: nginx-default-conf
-       mountPath: /etc/nginx/conf.d/default.conf
-       subPath: default.conf
-   volumes:
-   - name: www
-     persistentVolumeClaim:
-       claimName: nginx-web-pvc
-   - name: nginx-default-conf
-     configMap:
-       name: nginx-default
-       items:
-       - key: default.conf
-         path: default.conf
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx:alpine  # 在这里指定你想要使用的Nginx镜像
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "128Mi"  # 设置资源请求
+              cpu: "250m"
+            limits:
+              memory: "256Mi"  # 设置资源限制
+              cpu: "500m"
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config  # 这里指定ConfigMap的名称
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cicd
+                operator: In    # 亲和,只调度到cicd=jenkins的node,反亲和是NotIn
+                values:
+                  - jenkins
+
 ---
+# nginx-configmap.yaml - 创建一个ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: nginx
+data:
+  # 在这里定义你的Nginx配置
+  default.conf: |
+    server {
+        listen       80;
+        listen  [::]:80;
+        server_name  localhost;
+
+        #access_log  /var/log/nginx/host.access.log  main;
+
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+        }
+
+        location /stub_status {
+            stub_status on;
+        }
+
+        #error_page  404              /404.html;
+
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+
+        # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+        #
+        #location ~ \.php$ {
+        #    proxy_pass   http://127.0.0.1;
+        #}
+
+        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+        #
+        #location ~ \.php$ {
+        #    root           html;
+        #    fastcgi_pass   127.0.0.1:9000;
+        #    fastcgi_index  index.php;
+        #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+        #    include        fastcgi_params;
+        #}
+
+        # deny access to .htaccess files, if Apache's document root
+        # concurs with nginx's one
+        #
+        #location ~ /\.ht {
+        #    deny  all;
+        #}
+    }
+
+---
+# nginx-service.yaml - 创建一个Nginx服务并使用NodePort类型暴露
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx
+  name: nginx-service
   namespace: nginx
 spec:
-  type: LoadBalancer
   selector:
     app: nginx
   ports:
-    - name: http
+    - protocol: TCP
       port: 80
       targetPort: 80
-      protocol: TCP
+  type: NodePort  # 将Service类型设置为NodePort
+
+
+
+###开启Prometheus监控
+helm install prometheus-nginx-exporter prometheus-community/prometheus-nginx-exporter -n monitoring --set nginxServer=http://nginx-service.nginx.svc.cluster.local/stub_status --set serviceMonitor.enabled=true
