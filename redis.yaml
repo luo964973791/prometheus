@@ -1,0 +1,1 @@
+helm install prometheus-redis-exporter prometheus-community/prometheus-redis-exporter -n monitoring --set redisAddress=redis://172.27.0.3:6379 --set serviceMonitor.enabled=true --set auth.enabled=true --set auth.redisPassword="Test@123"
