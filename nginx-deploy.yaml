@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - name: nginx-container
-          image: nginx:alpine  # 在这里指定你想要使用的Nginx镜像
+          image: nginx:alpine # 在这里指定你想要使用的Nginx镜像
           ports:
             - containerPort: 80
           livenessProbe:
@@ -40,10 +40,10 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              memory: "128Mi"  # 设置资源请求
+              memory: "128Mi" # 设置资源请求
               cpu: "250m"
             limits:
-              memory: "256Mi"  # 设置资源限制
+              memory: "256Mi" # 设置资源限制
               cpu: "500m"
           volumeMounts:
             - name: nginx-config
@@ -51,16 +51,16 @@ spec:
       volumes:
         - name: nginx-config
           configMap:
-            name: nginx-config  # 这里指定ConfigMap的名称
+            name: nginx-config # 这里指定ConfigMap的名称
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In    # 亲和,只调度到kubernetes.io/hostname=node1的node,反亲和是NotIn
-                values:
-                  - node1
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In # 亲和,只调度到kubernetes.io/hostname=node1的node,反亲和是NotIn
+                    values:
+                      - node1
 
 ---
 # nginx-configmap.yaml - 创建一个ConfigMap
@@ -135,4 +135,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
-  type: NodePort  # 将Service类型设置为NodePort
+  type: NodePort # 将Service类型设置为NodePort
