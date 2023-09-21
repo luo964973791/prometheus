@@ -26,6 +26,18 @@ spec:
           image: nginx:alpine  # 在这里指定你想要使用的Nginx镜像
           ports:
             - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
           resources:
             requests:
               memory: "128Mi"  # 设置资源请求
@@ -45,10 +57,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: cicd
-                operator: In    # 亲和,只调度到cicd=jenkins的node,反亲和是NotIn
+              - key: kubernetes.io/hostname
+                operator: In    # 亲和,只调度到kubernetes.io/hostname=node1的node,反亲和是NotIn
                 values:
-                  - jenkins
+                  - node1
 
 ---
 # nginx-configmap.yaml - 创建一个ConfigMap
@@ -124,8 +136,3 @@ spec:
       port: 80
       targetPort: 80
   type: NodePort  # 将Service类型设置为NodePort
-
-
-
-###开启Prometheus监控
-helm install prometheus-nginx-exporter prometheus-community/prometheus-nginx-exporter -n monitoring --set nginxServer=http://nginx-service.nginx.svc.cluster.local/stub_status --set serviceMonitor.enabled=true
