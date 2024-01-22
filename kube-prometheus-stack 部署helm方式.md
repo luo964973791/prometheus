@@ -127,6 +127,13 @@ helm install prometheus  \
   --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=local-path \
   prometheus-community/kube-prometheus-stack
+
+
+#监控nginx
+helm install nginx-export -n monitoring \
+  --set nginxServer="http://172.27.0.14/stub_status" \
+  --set serviceMonitor.enabled=true \
+  prometheus-community/prometheus-nginx-exporter
 ```
 
 ### 四、访问grafana
