@@ -91,26 +91,42 @@ EOF
 ### 三、启动集群
 
 ```javascript
+#检查kube-proxy
+kubectl edit cm/kube-proxy -n kube-system
+## Change from
+    metricsBindAddress: 127.0.0.1:10249 ### <--- Too secure
+## Change to
+    metricsBindAddress: 0.0.0.0:10249
+kubectl delete pod -l k8s-app=kube-proxy -n kube-system
+
+#检查etcd
+cat /etc/etcd.env | grep METRICS_URLS
+ETCD_LISTEN_METRICS_URLS=http://172.27.0.6:2381,http://127.0.0.1:2381
+curl http://172.27.0.6:2381/metrics
+
+
+
 helm install prometheus  \
   --namespace monitoring --create-namespace \
-  --set grafana.service.type=NodePort \
-  --set prometheus.service.type=NodePort \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=nfs-client \
+  --set grafana.service.type=LoadBalancer \
+  --set prometheus.thanosService.enabled=true \
+  --set prometheus.service.type=LoadBalancer \
+  --set kubeEtcd.enabled=true \
+  --set kubeEtcd.endpoints[0]=172.27.0.6 \
+  --set kubeEtcd.endpoints[1]=172.27.0.7 \
+  --set kubeEtcd.endpoints[2]=172.27.0.8 \
+  --set kubeEtcd.service.port=2381 \
+  --set kubeEtcd.service.targetPort=2381 \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set alertmanager.service.type=NodePort \
-  --set alertmanager.alertmanagerSpec.replicas=3 \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=nfs-client \
+  --set alertmanager.service.type=LoadBalancer \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
   --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
   --set grafana.persistence.enabled=true \
   --set grafana.defaultDashboardsTimezone=cst \
-  --set grafana.persistence.storageClassName=nfs-client \
+  --set grafana.persistence.storageClassName=local-path \
   prometheus-community/kube-prometheus-stack
-
-
-#启动之后更改kube-proxy
-kubectl patch configmap kube-proxy -n kube-system --type merge -p '{"data":{"kube-proxy-config.conf":"metricsBindAddress: 0.0.0.0:10249"}}'
-kubectl rollout restart daemonset kube-proxy -n kube-system
 ```
 
 ### 四、访问grafana
