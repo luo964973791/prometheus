@@ -106,6 +106,11 @@ helm install prometheus  \
   --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=nfs-client \
   prometheus-community/kube-prometheus-stack
+
+
+#启动之后更改kube-proxy
+kubectl patch configmap kube-proxy -n kube-system --type merge -p '{"data":{"kube-proxy-config.conf":"metricsBindAddress: 0.0.0.0:10249"}}'
+kubectl rollout restart daemonset kube-proxy -n kube-system
 ```
 
 ### 四、访问grafana
