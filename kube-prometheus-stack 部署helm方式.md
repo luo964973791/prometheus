@@ -112,6 +112,7 @@ helm install prometheus  \
   --set prometheus.thanosService.enabled=true \
   --set prometheus.service.type=LoadBalancer \
   --set kubeEtcd.enabled=true \
+  --set prometheus.prometheusSpec.retention=365d \
   --set kubeEtcd.endpoints[0]=172.27.0.6 \
   --set kubeEtcd.endpoints[1]=172.27.0.7 \
   --set kubeEtcd.endpoints[2]=172.27.0.8 \
