@@ -10,3 +10,13 @@ groups:
     annotations:
       summary: "服务异常,实例:{{ $labels.instance }}"
       description: "{{ $labels.job }} 服务已关闭"
+
+#- name: Nginx alert
+#  - alert: Nginx服务异常
+#    expr: nginx_up == 0
+#    for: 30s
+#    labels:
+#      severity: critical
+#    annotations:
+#      summary: "Nginx服务异常，实例:{{ $labels.instance }}"
+#      description: "Nginx服务未响应"
