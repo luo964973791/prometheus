@@ -24,24 +24,16 @@ services:
       - '--storage.tsdb.retention=365d'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-      #热加载配置
       - '--web.enable-lifecycle'
-      #api配置
-      #- '--web.enable-admin-api'
-      #历史数据最大保留时间，默认15天
-      - '--storage.tsdb.retention.time=30d'  
     networks:
       - monitoring
-    links:
-      - alertmanager
-      - cadvisor
-      - node_exporter
     expose:
       - '9090'
     ports:
       - 9090:9090
     depends_on:
       - cadvisor
+      - pushgateway  # 依赖于 pushgateway
 
   alertmanager:
     image: prom/alertmanager
@@ -75,6 +67,19 @@ services:
     expose:
       - '8080'
 
+  pushgateway:
+    image: prom/pushgateway
+    container_name: pushgateway
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - monitoring
+    expose:
+      - '9091'
+    ports:
+      - 9091:9091
+
   node_exporter:
     image: prom/node-exporter
     container_name: node-exporter
@@ -107,6 +112,7 @@ services:
       - monitoring
     links:
       - prometheus
+      - pushgateway  # 添加到 pushgateway 的链接
     ports:
       - 3000:3000
     depends_on:
