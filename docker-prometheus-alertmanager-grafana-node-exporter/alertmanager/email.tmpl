@@ -1,14 +1,63 @@
 {{ define "email.html" }}
-{{ range $i, $alert := .Alerts }}
-========监控报警==========<br>
-<span style="color: orange;">告警状态：{{ .Status }}</span><br>
-<span style="color: green;">告警级别：{{ $alert.Labels.severity }}</span><br>
-<span style="color: blue;">告警类型：{{ $alert.Labels.alertname }}</span><br>
-<span style="color: purple;">告警应用：{{ $alert.Annotations.summary }}</span><br>
-<span style="color: red;">告警主机：{{ $alert.Labels.instance }}</span><br>
-<span style="color: brown;">告警详情：{{ $alert.Annotations.description }}</span><br>
-<span style="color: darkcyan;">触发阀值：{{ $alert.Annotations.value }}</span><br>
-<span style="color: magenta;">告警时间：{{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</span><br>
-========end=============<br>
-{{ end }}
+
+{{- if gt (len .Alerts.Firing) 0 -}}
+    {{- range $index, $alert := .Alerts.Firing -}}
+        {{- if eq $index 0 }}
+            ==========异常告警==========<br>
+            <span style="color: red;">
+                告警类型: {{ $alert.Labels.alertname }}
+            </span><br>
+            <span style="color: green;">
+                告警级别: {{ $alert.Labels.severity }}
+            </span><br>
+            <span style="color: blue;">
+                告警详情: {{ $alert.Annotations.message }}{{ $alert.Annotations.description }};{{ $alert.Annotations.summary }}
+            </span><br>
+            <span style="color: magenta;">
+                告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+            </span><br>
+            {{- if gt (len $alert.Labels.instance) 0 }}
+                <span style="color: purple;">
+                    实例信息: {{ $alert.Labels.instance }}
+                </span><br>
+            {{- end }}
+            <span style="color: orange;">
+                告警主机: {{ $alert.Labels.instance }}
+            </span><br>
+            ============END============<br>
+        {{- end }}
+    {{- end }}
+{{- end }}
+
+{{- if gt (len .Alerts.Resolved) 0 -}}
+    {{- range $index, $alert := .Alerts.Resolved -}}
+        {{- if eq $index 0 }}
+            ==========异常恢复==========<br>
+            <span style="color: red;">
+                告警类型: {{ $alert.Labels.alertname }}
+            </span><br>
+            <span style="color: green;">
+                告警级别: {{ $alert.Labels.severity }}
+            </span><br>
+            <span style="color: blue;">
+                告警详情: {{ $alert.Annotations.message }}{{ $alert.Annotations.description }};{{ $alert.Annotations.summary }}
+            </span><br>
+            <span style="color: magenta;">
+                故障时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+            </span><br>
+            <span style="color: purple;">
+                恢复时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+            </span><br>
+            {{- if gt (len $alert.Labels.instance) 0 }}
+                <span style="color: purple;">
+                    实例信息: {{ $alert.Labels.instance }}
+                </span><br>
+            {{- end }}
+            <span style="color: orange;">
+                告警主机: {{ $alert.Labels.instance }}
+            </span><br>
+            ============END============<br>
+        {{- end }}
+    {{- end }}
+{{- end }}
 {{ end }}
