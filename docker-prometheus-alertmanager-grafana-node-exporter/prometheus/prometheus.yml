@@ -37,10 +37,3 @@ scrape_configs:
     - targets: ['node_exporter:9100']
       labels:
         instance: Prometheus服务器
-
-  - job_name: 'nginx-exporter'
-    scrape_interval: 2s
-    static_configs:
-    - targets: ['172.27.0.3:9113']
-      labels:
-        instance: nginx服务器 
