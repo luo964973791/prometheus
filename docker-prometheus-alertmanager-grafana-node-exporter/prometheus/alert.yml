@@ -10,13 +10,3 @@ groups:
     annotations:
       summary: "服务异常,实例:{{ $labels.instance }}"
       description: "{{ $labels.job }} 服务已关闭"
-- name: Nginx alert
-  rules:
-  - alert: NginxDown
-    expr: up == 0
-    for: 30s
-    labels:
-      severity: critical
-    annotations:
-      summary: "Nginx端口异常,实例: {{$labels.instance}}"
-      description: "Nginx端口(80)未启动"
