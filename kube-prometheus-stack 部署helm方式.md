@@ -121,8 +121,7 @@ helm install prometheus  \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
   --set alertmanager.service.type=LoadBalancer \
-  --set alertmanager.alertmanagerSpec.replicas=3 \
-  --set alertmanager.tplConfig=true \
+  --set alertmanager.tplConfig=false \
   --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
   --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
