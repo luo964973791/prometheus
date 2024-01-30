@@ -284,8 +284,8 @@ alertmanager:
   tplConfig: true
   templateFiles:
     template_1.tmpl: |-
-        {{ define "email.from" }}1145023603@qq.com{{ end }}
-        {{ define "email.to" }}964973791@qq.com{{ end }}
+        {{ define "email.from" }}@qq.com{{ end }}
+        {{ define "email.to" }}@qq.com{{ end }}
         {{ define "email.to.html" }}
         {{ range .Alerts }}
         =========start==========<br>
