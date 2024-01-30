@@ -159,37 +159,157 @@ from_address = 1145023603@qq.com
 ### 五、部署thanos
 
 ```javascript
-cat <<EOF>thanos.yaml 
-global:
-  storageClass: "nfs-client"
-existingObjstoreSecret: "bucket-config"
-query:
+cat <<EOF>values.yaml 
+additionalPrometheusRulesMap:
+  - groups:
+    - name: nginx_rules
+      rules:
+        - record: nginx_http_requests_total
+          expr: sum(nginx_http_requests_total) by (instance)
+        - record: nginx_http_status_5xx
+          expr: sum(nginx_http_responses_total{status="5xx"}) by (instance)
+        - record: nginx_up
+          expr: up == 1
+        - alert: HighErrorRate
+          expr: rate(nginx_http_status_5xx[5m]) > 0.5
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate on NGINX"
+            description: "Error rate is too high on NGINX for the last 5 minutes."
+fullnameOverride: prometheus
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: true
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeScheduler: true
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+grafana:
+  adminPassword: admin-password
   enabled: true
-  replicaLabel: [prometheus_replica]
-  dnsDiscovery:
+  defaultDashboardsTimezone: cst
+  serviceMonitor:
     enabled: true
-    sidecarsService: "prometheus-kube-prometheus-thanos-discovery"
-    sidecarsNamespace: "monitoring"
-bucketweb:
-  enabled: true
-queryFrontend:
-  enabled: true 
-compactor:
-  enabled: true
+  service:
+    type: LoadBalancer
   persistence:
     enabled: true
-storegateway:
-  enabled: true 
   persistence:
+    storageClassName: local-path	
+prometheus:
+  thanosService:
     enabled: true
-ruler:
+  service:
+    type: LoadBalancer
+  prometheusSpec:
+    retention: 365d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          resources:
+            requests:
+              storage: 2Gi
+    additionalScrapeConfigs:
+      - job_name: "nginx-exporter"
+        scrape_interval: 15s
+        static_configs:
+          - targets: [ '172.27.0.15:9113' ]
+kubeScheduler:
   enabled: true
-  replicaLabel: prometheus_replica
-  alertmanagers:
-  - http://prometheus-kube-prometheus-alertmanager:9093
-  existingConfigmap: "prometheus-kube-prometheus-grafana-overview"
-  persistence:
+kubeProxy:
+  enabled: true
+kubeStateMetrics:
+  enabled: true
+kube-state-metrics:
+  fullnameOverride: kube-state-metrics
+  selfMonitor:
     enabled: true
+kubeEtcd:
+  enabled: true
+  endpoints:
+    - 172.27.0.6
+    - 172.27.0.7
+    - 172.27.0.8
+  service:
+    port: 2381
+    targetPort: 2381
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: 'email_router'
+      group_by: ['namespace']
+      routes:
+        - receiver: 'email'
+          matchers:
+            - alertname =~ "InfoInhibitor|Watchdog"
+    receivers:
+      - name: 'email_router'
+        email_configs:
+          - to: '964973791@qq.com'
+            from: '1145023603@qq.com'
+            smarthost: smtp.qq.com:465
+            auth_username: '1145023603@qq.com'
+            auth_password: 'juuiapfeokikfjbh'
+            send_resolved: true
+            require_tls: false
+    templates:
+    - '/etc/alertmanager/config/*.tmpl'
+  tplConfig: true
+  templateFiles:
+    template_1.tmpl: |-
+        {{ define "email.from" }}1145023603@qq.com{{ end }}
+        {{ define "email.to" }}964973791@qq.com{{ end }}
+        {{ define "email.to.html" }}
+        {{ range .Alerts }}
+        =========start==========<br>
+        告警程序: prometheus_alert <br>
+        告警级别: {{ .Labels.severity }} 级 <br>
+        告警类型: {{ .Labels.alertname }} <br>
+        故障主机: {{ .Labels.instance }} <br>
+        告警主题: {{ .Annotations.summary }} <br>
+        告警详情: {{ .Annotations.description }} <br>
+        触发时间: {{ .StartsAt.Format "2019-08-04 16:58:15" }} <br>
+        =========end==========<br>
+        {{ end }}
+        {{ end }}
+  service:
+    type: LoadBalancer
+  tplConfig: true
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          resources:
+            requests:
+              storage: 2Gi
 EOF
 ```
 
