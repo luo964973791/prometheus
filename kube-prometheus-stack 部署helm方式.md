@@ -151,9 +151,9 @@ grafana.ini: [analytics]
 [smtp]
 enabled = true
 host = smtp.qq.com:465
-user = 1145023603@qq.com
-password = owklbhkobjnabcde
-from_address = 1145023603@qq.com
+user = @qq.com
+password = 
+from_address = @qq.com
 ```
 
 ### 五、部署thanos
@@ -272,11 +272,11 @@ alertmanager:
     receivers:
       - name: 'email_router'
         email_configs:
-          - to: '964973791@qq.com'
-            from: '1145023603@qq.com'
+          - to: '@qq.com'
+            from: '@qq.com'
             smarthost: smtp.qq.com:465
-            auth_username: '1145023603@qq.com'
-            auth_password: 'juuiapfeokikfjbh'
+            auth_username: '@qq.com'
+            auth_password: ''
             send_resolved: true
             require_tls: false
     templates:
