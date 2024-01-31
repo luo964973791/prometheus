@@ -245,7 +245,6 @@ kubeProxy:
 kubeStateMetrics:
   enabled: true
 kube-state-metrics:
-  fullnameOverride: kube-state-metrics
   selfMonitor:
     enabled: true
 kubeEtcd:
