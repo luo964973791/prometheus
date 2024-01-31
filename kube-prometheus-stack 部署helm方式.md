@@ -1,96 +1,98 @@
 ### 一、添加源
 
 ```javascript
-helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
 helm repo update
-yum install nfs-utils -y
-
-
-#如果测试环境没有存储,可以搭建个单机版的NFS
-docker run -d --name nfs \
-    --privileged \
-    --restart always \
-    -p 2049:2049 \
-    -v /data/nfs-share:/nfs-share \
-    -e SHARED_DIRECTORY=/nfs-share \
-    itsthenetwork/nfs-server-alpine:latest
-
-
-helm install nfs \
-  --namespace=nfs-provisioner --create-namespace \
-  --set storageClass.defaultClass=true \
-  --set nfs.server=172.27.0.3 \
-  --set nfs.path=/ \
-  nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
-```
-
-### 二、准备挂载.
-
-```javascript
-#准备对象存储,buket存数据，进入9000端口，创建名字为thanos的buket.
-docker run -d   --restart always   -p 9000:9000   --name minio   -v /data/minio/data:/data   -e "MINIO_ROOT_USER=admin"   -e "MINIO_ROOT_PASSWORD=fastadmin"   minio/minio server /data --console-address ":9090"
-
-cat <<EOF>values.yaml 
+helm pull prometheus-community/kube-prometheus-stack
+tar zxvf kube-prometheus-stack-x.x.tgz
+cd kube-prometheus-stack
+vi values.yaml  #更改里面的配置,这里已邮箱报警为例.
 alertmanager:
-  alertmanagerSpec:
-    storage:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: nfs-client
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 2Gi
-prometheus:
-  thanosService:
-    enabled: true
-  extraSecret:
-    name: bucket-config
-    data:
-      objstore.yml: |
-        type: S3
-        config:
-          bucket: "thanos"
-          endpoint: "172.27.0.3:9000"
-          access_key: "admin"
-          secret_key: "fastadmin"
-          insecure: true
-          signature_version2: false
-  thanosServiceMonitor:
-    enabled: true
-  prometheusSpec:
-    disableCompaction: true
-    thanos:
-      objectStorageConfig:
-        name: bucket-config
-        key: objstore.yml
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: nfs-client
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 2Gi
-thanosRuler:
-  enabled: true
-  thanosRulerSpec:
-    storage:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: nfs-client
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 2Gi
-EOF
-```
+  config:
+    global:
+      resolve_timeout: 5m
+      smtp_from: 'from@qq.com'
+      smtp_smarthost: 'smtp.qq.com:465'
+      smtp_auth_username: 'from@qq.com'
+      smtp_auth_password: '12345'
+      smtp_require_tls: false
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
+    route:
+      receiver: Default
+      group_by: ['alertname', 'cluster']
+      continue: false
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+    receivers:
+    - name: Default
+      email_configs:
+      - to: 'to@qq.com'
+        send_resolved: true
+        headers:
+          subject: "{{ .CommonLabels.subject }}"
+        html: '{{ template "email.html" . }}'
+  tplConfig: false
+  templateFiles:
+    email.tmpl: |-
+      {{ define "email.html" }}
+      <html>
+        <body>
+          {{- if gt (len .Alerts.Firing) 0 -}}
+          {{- range $index, $alert := .Alerts -}}
+            <p>========= ERROR ==========</p>
+            <h3 style="color:red;">告警名称: {{ .Labels.alertname }}</h3>
+            <p>告警级别: {{ .Labels.severity }}</p>
+            <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
+            <p>告警详情: {{ .Annotations.summary }}</p>
+            <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>========= END ==========</p>
+          {{- end }}
+          {{- end }}
+          {{- if gt (len .Alerts.Resolved) 0 -}}
+          {{- range $index, $alert := .Alerts -}}
+            <p>========= INFO ==========</p>
+            <h3 style="color:green;">告警名称: {{ .Labels.alertname }}</h3>
+            <p>告警级别: {{ .Labels.severity }}</p>
+            <p>告警机器: {{ .Labels.instance }}</p>
+            <p>告警详情: {{ .Annotations.summary }}</p>
+            <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>恢复时间: {{ .EndsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>========= END ==========</p>
+          {{- end }}
+          {{- end }}
+        </body>
+      </html>
+      {{- end }}
 
-### 三、启动集群
 
-```javascript
+
+#启动
+helm install prometheus -n monitoring -f ./values.yaml .
+helm upgrade prometheus -n monitoring -f ./values.yaml . \
+  --set grafana.service.type=LoadBalancer \
+  --set prometheus.thanosService.enabled=true \
+  --set prometheus.service.type=LoadBalancer \
+  --set kubeEtcd.enabled=true \
+  --set prometheus.prometheusSpec.retention=365d \
+  --set kubeEtcd.endpoints[0]=172.27.0.6 \
+  --set kubeEtcd.endpoints[1]=172.27.0.7 \
+  --set kubeEtcd.endpoints[2]=172.27.0.8 \
+  --set kubeEtcd.service.port=2381 \
+  --set kubeEtcd.service.targetPort=2381 \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
+  --set alertmanager.service.type=LoadBalancer \
+  --set alertmanager.tplConfig=false \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
+  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+  --set grafana.persistence.enabled=true \
+  --set grafana.defaultDashboardsTimezone=cst \
+  --set grafana.persistence.storageClassName=local-path
+
+
 #检查kube-proxy
 kubectl edit cm/kube-proxy -n kube-system
 ## Change from
