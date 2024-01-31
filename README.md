@@ -449,6 +449,9 @@ stringData:
         to_user: "@all"
         agent_id: 1xxxxxxx
         api_secret: "tTZCPhgSEGRGmaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
+        headers:
+          subject: "{{ .CommonLabels.subject }}"
+        html: '{{ template "email.html" . }}'
     "route":
       "group_by":
       - "namespace"
@@ -463,58 +466,36 @@ stringData:
         - "alertname = Watchdog"
         "receiver": "wechat"
     templates:
-    - /etc/alertmanager/config/wechat.tmpl
-  wechat.tmpl: |-           # 告警模板
-    {{ define "wechat.default.message" }}
-    {{- if gt (len .Alerts.Firing) 0 -}}
-    {{- range $index, $alert := .Alerts -}}
-    {{- if eq $index 0 }}
-    ==========异常告警==========
-    告警类型: {{ $alert.Labels.alertname }}
-    告警级别: {{ $alert.Labels.severity }}
-    告警详情: {{ $alert.Annotations.message }}{{ $alert.Annotations.description}};{{$alert.Annotations.summary}}
-    故障时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
-    {{- if gt (len $alert.Labels.instance) 0 }}
-    实例信息: {{ $alert.Labels.instance }}
-    {{- end }}
-    {{- if gt (len $alert.Labels.namespace) 0 }}
-    命名空间: {{ $alert.Labels.namespace }}
-    {{- end }}
-    {{- if gt (len $alert.Labels.node) 0 }}
-    节点信息: {{ $alert.Labels.node }}
-    {{- end }}
-    {{- if gt (len $alert.Labels.pod) 0 }}
-    实例名称: {{ $alert.Labels.pod }}
-    {{- end }}
-    ============END============
-    {{- end }}
-    {{- end }}
-    {{- end }}
-    {{- if gt (len .Alerts.Resolved) 0 -}}
-    {{- range $index, $alert := .Alerts -}}
-    {{- if eq $index 0 }}
-    ==========异常恢复==========
-    告警类型: {{ $alert.Labels.alertname }}
-    告警级别: {{ $alert.Labels.severity }}
-    告警详情: {{ $alert.Annotations.message }}{{ $alert.Annotations.description}};{{$alert.Annotations.summary}}
-    故障时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
-    恢复时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
-    {{- if gt (len $alert.Labels.instance) 0 }}
-    实例信息: {{ $alert.Labels.instance }}
-    {{- end }}
-    {{- if gt (len $alert.Labels.namespace) 0 }}
-    命名空间: {{ $alert.Labels.namespace }}
-    {{- end }}
-    {{- if gt (len $alert.Labels.node) 0 }}
-    节点信息: {{ $alert.Labels.node }}
-    {{- end }}
-    {{- if gt (len $alert.Labels.pod) 0 }}
-    实例名称: {{ $alert.Labels.pod }}
-    {{- end }}
-    ============END============
-    {{- end }}
-    {{- end }}
-    {{- end }}
-    {{- end }}
+    - /etc/alertmanager/config/*.tmpl
+  email.tmpl: |-           # 告警模板
+      {{ define "email.html" }}
+      <html>
+        <body>
+          {{- if gt (len .Alerts.Firing) 0 -}}
+          {{- range $index, $alert := .Alerts -}}
+            <p>========= ERROR ==========</p>
+            <h3 style="color:red;">告警名称: {{ .Labels.alertname }}</h3>
+            <p>告警级别: {{ .Labels.severity }}</p>
+            <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
+            <p>告警详情: {{ .Annotations.summary }}</p>
+            <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>========= END ==========</p>
+          {{- end }}
+          {{- end }}
+          {{- if gt (len .Alerts.Resolved) 0 -}}
+          {{- range $index, $alert := .Alerts -}}
+            <p>========= INFO ==========</p>
+            <h3 style="color:green;">告警名称: {{ .Labels.alertname }}</h3>
+            <p>告警级别: {{ .Labels.severity }}</p>
+            <p>告警机器: {{ .Labels.instance }}</p>
+            <p>告警详情: {{ .Annotations.summary }}</p>
+            <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>恢复时间: {{ .EndsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>========= END ==========</p>
+          {{- end }}
+          {{- end }}
+        </body>
+      </html>
+      {{- end }}
 type: Opaque
 ```
