@@ -281,7 +281,6 @@ alertmanager:
             require_tls: false
     templates:
     - '/etc/alertmanager/config/*.tmpl'
-  tplConfig: true
   templateFiles:
     template_1.tmpl: |-
         {{ define "email.from" }}@qq.com{{ end }}
