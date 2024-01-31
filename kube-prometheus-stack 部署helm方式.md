@@ -76,11 +76,6 @@ helm upgrade prometheus -n monitoring -f ./values.yaml . \
   --set prometheus.service.type=LoadBalancer \
   --set kubeEtcd.enabled=true \
   --set prometheus.prometheusSpec.retention=365d \
-  --set kubeEtcd.endpoints[0]=172.27.0.6 \
-  --set kubeEtcd.endpoints[1]=172.27.0.7 \
-  --set kubeEtcd.endpoints[2]=172.27.0.8 \
-  --set kubeEtcd.service.port=2381 \
-  --set kubeEtcd.service.targetPort=2381 \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
   --set alertmanager.service.type=LoadBalancer \
@@ -91,6 +86,7 @@ helm upgrade prometheus -n monitoring -f ./values.yaml . \
   --set grafana.persistence.enabled=true \
   --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=local-path
+
 
 
 #检查kube-proxy
