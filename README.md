@@ -499,3 +499,95 @@ stringData:
       {{- end }}
 type: Opaque
 ```
+### 五、邮箱报警
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/component: alert-router
+    app.kubernetes.io/instance: main
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 0.23.0
+  name: alertmanager-main
+  namespace: monitoring
+stringData:
+  alertmanager.yaml: |-
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+    - equal:
+      - namespace
+      - alertname
+      source_matchers:
+      - severity = critical
+      target_matchers:
+      - severity =~ warning|info
+    - equal:
+      - namespace
+      - alertname
+      source_matchers:
+      - severity = warning
+      target_matchers:
+      - severity = info
+    receivers:
+    - name: email
+      email_configs:
+      - send_resolved: true
+        smarthost: 'smtp.qq.com:465'
+        from: '@qq.com'
+        auth_username: '@qq.com'
+        auth_password: ''
+        require_tls: false
+        to: "@qq.com"
+        headers:
+          subject: "{{ .CommonLabels.subject }}"
+        html: '{{ template "email.html" . }}'
+    route:
+      group_by:
+      - namespace
+      - alertname
+      - job
+      group_interval: 5m
+      group_wait: 30s
+      receiver: email
+      repeat_interval: 12h
+      routes:
+      - matchers:
+        - alertname = Watchdog
+        receiver: email
+    templates:
+    - /etc/alertmanager/config/*.tmpl
+  email.tmpl: |- # 告警模板
+    {{ define "email.html" }}
+    <html>
+      <body>
+        {{- if gt (len .Alerts.Firing) 0 -}}
+        {{- range $index, $alert := .Alerts -}}
+          <p>========= ERROR ==========</p>
+          <h3 style="color:red;">告警名称: {{ .Labels.alertname }}</h3>
+          <p>告警级别: {{ .Labels.severity }}</p>
+          <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
+          <p>告警详情: {{ .Annotations.summary }}</p>
+          <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+          <p>========= END ==========</p>
+        {{- end }}
+        {{- end }}
+        {{- if gt (len .Alerts.Resolved) 0 -}}
+        {{- range $index, $alert := .Alerts -}}
+          <p>========= INFO ==========</p>
+          <h3 style="color:green;">告警名称: {{ .Labels.alertname }}</h3>
+          <p>告警级别: {{ .Labels.severity }}</p>
+          <p>告警机器: {{ .Labels.instance }}</p>
+          <p>告警详情: {{ .Annotations.summary }}</p>
+          <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+          <p>恢复时间: {{ .EndsAt.Format "2006-01-02 15:04:05" }}</p>
+          <p>========= END ==========</p>
+        {{- end }}
+        {{- end }}
+      </body>
+    </html>
+    {{- end }}
+type: Opaque
+```
