@@ -103,6 +103,7 @@ kubectl edit cm/kube-proxy -n kube-system
 ## Change to
     metricsBindAddress: 0.0.0.0:10249
 kubectl delete pod -l k8s-app=kube-proxy -n kube-system
+kubectl get prometheusrule -n monitoring #查看告警规则
 
 #检查etcd
 cat /etc/etcd.env | grep METRICS_URLS
