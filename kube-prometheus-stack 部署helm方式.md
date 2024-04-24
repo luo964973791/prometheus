@@ -69,8 +69,12 @@ alertmanager:
 
 #如果想更改alertmanager里面的模板,需要同时更新alertmanager-prometheus-kube-prometheus-alertmanager和alertmanager-prometheus-kube-prometheus-alertmanager-generated的值.
 #!/bin/bash
+base64 -w 0 alertmanager.yaml
+
 echo "" | base64 -d | gunzip -c  #查看.tg里面的明文信息.
 gzip -c alertmanager.yaml | base64 > alertmanager.yaml.gz  #更新完配置再打包
+kubectl patch secret -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager --patch \
+  '{"data":{"alertmanager.yaml.gz":"'$(cat alertmanager.yaml.gz | base64 -w 0)'"}}'
 kubectl patch secret -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-generated --patch \
   '{"data":{"alertmanager.yaml.gz":"'$(cat alertmanager.yaml.gz | base64 -w 0)'"}}'  #替换
 
