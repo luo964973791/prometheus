@@ -46,7 +46,7 @@ alertmanager:
             <p>告警级别: {{ .Labels.severity }}</p>
             <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
             <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
             <p>========= END ==========</p>
           {{- end }}
           {{- end }}
@@ -57,8 +57,8 @@ alertmanager:
             <p>告警级别: {{ .Labels.severity }}</p>
             <p>告警机器: {{ .Labels.instance }}</p>
             <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>告警时间: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
-            <p>恢复时间: {{ .EndsAt.Format "2006-01-02 15:04:05" }}</p>
+            <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+            <p>恢复时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
             <p>========= END ==========</p>
           {{- end }}
           {{- end }}
