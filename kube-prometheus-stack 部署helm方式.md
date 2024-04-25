@@ -53,20 +53,6 @@ alertmanager:
         </body>
       </html>
       {{- end }}
-
-
-#如果想更改alertmanager里面的模板,需要同时更新alertmanager-prometheus-kube-prometheus-alertmanager和alertmanager-prometheus-kube-prometheus-alertmanager-generated的值.
-#!/bin/bash
-base64 -w 0 alertmanager.yaml
-
-echo "" | base64 -d | gunzip -c  #查看.tg里面的明文信息.
-gzip -c alertmanager.yaml | base64 > alertmanager.yaml.gz  #更新完配置再打包
-kubectl patch secret -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager --patch \
-  '{"data":{"alertmanager.yaml.gz":"'$(cat alertmanager.yaml.gz | base64 -w 0)'"}}'
-kubectl patch secret -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-generated --patch \
-  '{"data":{"alertmanager.yaml.gz":"'$(cat alertmanager.yaml.gz | base64 -w 0)'"}}'  #替换
-
-
 #启动
 helm install prometheus -n monitoring -f ./values.yaml .
 helm upgrade prometheus -n monitoring -f ./values.yaml . \
@@ -87,7 +73,6 @@ helm upgrade prometheus -n monitoring -f ./values.yaml . \
   --set grafana.persistence.storageClassName=local-path
 
 
-
 #检查kube-proxy
 kubectl edit cm/kube-proxy -n kube-system
 ## Change from
@@ -96,6 +81,7 @@ kubectl edit cm/kube-proxy -n kube-system
     metricsBindAddress: 0.0.0.0:10249
 kubectl delete pod -l k8s-app=kube-proxy -n kube-system
 kubectl get prometheusrule -n monitoring #查看告警规则
+kubectl edit prometheusrule -n monitoring prometheus-kube-prometheus-general.rules #删除watchdog策略.
 
 #检查etcd
 cat /etc/etcd.env | grep METRICS_URLS
@@ -103,30 +89,6 @@ ETCD_LISTEN_METRICS_URLS=http://172.27.0.6:2381,http://127.0.0.1:2381
 curl http://172.27.0.6:2381/metrics
 
 
-
-helm install prometheus  \
-  --namespace monitoring --create-namespace \
-  --set grafana.service.type=LoadBalancer \
-  --set prometheus.thanosService.enabled=true \
-  --set prometheus.service.type=LoadBalancer \
-  --set kubeEtcd.enabled=true \
-  --set prometheus.prometheusSpec.retention=365d \
-  --set kubeEtcd.endpoints[0]=172.27.0.6 \
-  --set kubeEtcd.endpoints[1]=172.27.0.7 \
-  --set kubeEtcd.endpoints[2]=172.27.0.8 \
-  --set kubeEtcd.service.port=2381 \
-  --set kubeEtcd.service.targetPort=2381 \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set alertmanager.service.type=LoadBalancer \
-  --set alertmanager.tplConfig=false \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
-  --set grafana.persistence.enabled=true \
-  --set grafana.defaultDashboardsTimezone=cst \
-  --set grafana.persistence.storageClassName=local-path \
-  prometheus-community/kube-prometheus-stack
 
 
 #监控nginx
