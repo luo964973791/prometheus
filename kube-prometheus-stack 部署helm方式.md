@@ -253,7 +253,7 @@ alertmanager:
         故障主机: {{ .Labels.instance }} <br>
         告警主题: {{ .Annotations.summary }} <br>
         告警详情: {{ .Annotations.description }} <br>
-        触发时间: {{ .StartsAt.Format "2019-08-04 16:58:15" }} <br>
+        触发时间: {{ ($alert.StartsAt.Add 28800e9).Format "2019-08-04 16:58:15" }} <br>
         =========end==========<br>
         {{ end }}
         {{ end }}
