@@ -10,7 +10,7 @@ vi values.yaml  #更改里面的配置,这里已邮箱报警为例.
 alertmanager:
   config:
     global:
-      resolve_timeout: 5m
+      resolve_timeout: 30s
       smtp_from: 'from@qq.com'
       smtp_smarthost: 'smtp.qq.com:465'
       smtp_auth_username: 'from@qq.com'
@@ -20,11 +20,11 @@ alertmanager:
       - '/etc/alertmanager/config/*.tmpl'
     route:
       receiver: Default
-      group_by: ['alertname', 'cluster']
+      group_by: ['job']
       continue: false
       group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 12h
+      group_interval: 30s
+      repeat_interval: 1h
     receivers:
     - name: Default
       email_configs:
@@ -47,18 +47,6 @@ alertmanager:
             <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
             <p>告警详情: {{ .Annotations.summary }}</p>
             <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
-            <p>========= END ==========</p>
-          {{- end }}
-          {{- end }}
-          {{- if gt (len .Alerts.Resolved) 0 -}}
-          {{- range $index, $alert := .Alerts -}}
-            <p>========= INFO ==========</p>
-            <h3 style="color:green;">告警名称: {{ .Labels.alertname }}</h3>
-            <p>告警级别: {{ .Labels.severity }}</p>
-            <p>告警机器: {{ .Labels.instance }}</p>
-            <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
-            <p>恢复时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
             <p>========= END ==========</p>
           {{- end }}
           {{- end }}
