@@ -133,7 +133,7 @@ additionalPrometheusRules:
             expr: up == 1
           - alert: HighErrorRate
             expr: rate(nginx_http_status_5xx[5m]) > 0.5
-            for: 5m
+            for: 5s
             labels:
               severity: critical
             annotations:
