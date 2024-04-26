@@ -60,6 +60,9 @@ helm upgrade prometheus -n monitoring -f ./values.yaml . \
   --set prometheus.thanosService.enabled=true \
   --set prometheus.service.type=LoadBalancer \
   --set kubeEtcd.enabled=true \
+  --set kubeEtcd.endpoints[0]=172.27.0.3 \
+  --set kubeEtcd.service.port=2381 \
+  --set kubeEtcd.service.targetPort=2381 \
   --set prometheus.prometheusSpec.retention=365d \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
   --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
