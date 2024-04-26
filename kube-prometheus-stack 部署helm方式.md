@@ -54,8 +54,7 @@ alertmanager:
       </html>
       {{- end }}
 #启动
-helm install prometheus -n monitoring -f ./values.yaml .
-helm upgrade prometheus -n monitoring -f ./values.yaml . \
+helm install prometheus -n monitoring -f ./values.yaml . \
   --set grafana.service.type=LoadBalancer \
   --set prometheus.thanosService.enabled=true \
   --set prometheus.service.type=LoadBalancer \
