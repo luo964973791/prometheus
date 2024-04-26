@@ -20,7 +20,7 @@ alertmanager:
       - '/etc/alertmanager/config/*.tmpl'
     route:
       receiver: Default
-      group_by: ['job']
+      group_by: ['cluster','alertname']
       continue: false
       group_wait: 30s
       group_interval: 30s
@@ -126,24 +126,22 @@ from_address = @qq.com
 
 ```javascript
 cat <<EOF>values.yaml 
-additionalPrometheusRules:
-  - name: nginx-rules  # 这里是规则组的名称
+additionalPrometheusRulesMap:
+  nginx-rules:
     groups:
-      - name: nginx-rules-group  # 这里是规则组内部规则的名称
-        rules:
-          - record: nginx_http_requests_total
-            expr: sum(nginx_http_requests_total) by (instance)
-          - record: nginx_http_status_5xx
-            expr: sum(nginx_http_responses_total{status="5xx"}) by (instance)
-          - record: nginx_up
-            expr: up == 1
-          - alert: HighErrorRate
-            expr: rate(nginx_http_status_5xx[5m]) > 0.5
-            for: 5s
-            labels:
-              severity: critical
-            annotations:
-              summary: "High error rate on NGINX"
+    - name: nginx-up-alerts
+      groups:
+        - name: nginx_up_rules
+          rules:
+            - alert: NginxServiceUp
+              expr: up == 0
+              for: 5s
+              labels:
+                severity: critical
+              annotations:
+                summary: "NGINX service is down"
+                description: "NGINX service has been detected as down for the last 5 minutes."
+
 
 fullnameOverride: prometheus
 defaultRules:
@@ -230,7 +228,7 @@ alertmanager:
       resolve_timeout: 5m
     route:
       receiver: 'email_router'
-      group_by: ['namespace']
+      group_by: ['cluster','alertname']
       routes:
         - receiver: 'email'
           matchers:
