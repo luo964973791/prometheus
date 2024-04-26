@@ -120,24 +120,25 @@ from_address = @qq.com
 
 ```javascript
 cat <<EOF>values.yaml 
-additionalPrometheusRulesMap:
-  - groups:
-    - name: nginx_rules
-      rules:
-        - record: nginx_http_requests_total
-          expr: sum(nginx_http_requests_total) by (instance)
-        - record: nginx_http_status_5xx
-          expr: sum(nginx_http_responses_total{status="5xx"}) by (instance)
-        - record: nginx_up
-          expr: up == 1
-        - alert: HighErrorRate
-          expr: rate(nginx_http_status_5xx[5m]) > 0.5
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: "High error rate on NGINX"
-            description: "Error rate is too high on NGINX for the last 5 minutes."
+additionalPrometheusRules:
+  - name: nginx-rules  # 这里是规则组的名称
+    groups:
+      - name: nginx-rules-group  # 这里是规则组内部规则的名称
+        rules:
+          - record: nginx_http_requests_total
+            expr: sum(nginx_http_requests_total) by (instance)
+          - record: nginx_http_status_5xx
+            expr: sum(nginx_http_responses_total{status="5xx"}) by (instance)
+          - record: nginx_up
+            expr: up == 1
+          - alert: HighErrorRate
+            expr: rate(nginx_http_status_5xx[5m]) > 0.5
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High error rate on NGINX"
+
 fullnameOverride: prometheus
 defaultRules:
   create: true
