@@ -95,6 +95,7 @@ curl http://172.27.0.6:2381/metrics
 kubectl get prometheusrules -A -o yaml | sed 's/for: 15m/for: 30s/g' | kubectl apply -f -
 kubectl get prometheusrules -A -o yaml | sed 's/for: 1h/for: 30s/g' | kubectl apply -f -
 kubectl get prometheusrules -A -o yaml | sed 's/for: 10m/for: 30s/g' | kubectl apply -f -
+kubectl get prometheusrules -A -o yaml | sed 's/for: 5m/for: 30s/g' | kubectl apply -f -
 
 
 #监控nginx
