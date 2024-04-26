@@ -91,7 +91,10 @@ cat /etc/etcd.env | grep METRICS_URLS
 ETCD_LISTEN_METRICS_URLS=http://172.27.0.6:2381,http://127.0.0.1:2381
 curl http://172.27.0.6:2381/metrics
 
-
+#更改告警时间
+kubectl get prometheusrules -A -o yaml | sed 's/for: 15m/for: 30s/g' | kubectl apply -f -
+kubectl get prometheusrules -A -o yaml | sed 's/for: 1h/for: 30s/g' | kubectl apply -f -
+kubectl get prometheusrules -A -o yaml | sed 's/for: 10m/for: 30s/g' | kubectl apply -f -
 
 
 #监控nginx
