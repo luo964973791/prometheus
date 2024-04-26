@@ -322,7 +322,7 @@ alertmanager:
       - '/etc/alertmanager/config/*.tmpl'
     route:
       receiver: Default
-      group_by: ['job']
+      group_by: ['cluster','alertname']
       continue: false
       group_wait: 30s
       group_interval: 30s
