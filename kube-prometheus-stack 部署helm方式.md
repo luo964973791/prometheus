@@ -93,7 +93,7 @@ curl http://172.27.0.6:2381/metrics
 
 #监控nginx
 helm install nginx-export -n monitoring \
-  --set nginxServer="http://172.27.0.14/stub_status" \
+  --set nginxServer="http://nginx-service.nginx.svc.cluster.local/stub_status" \
   --set serviceMonitor.enabled=true \
   prometheus-community/prometheus-nginx-exporter
 ```
