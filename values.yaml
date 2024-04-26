@@ -192,20 +192,18 @@ defaultRules:
 ## Provide custom recording or alerting rules to be deployed into the cluster.
 ##
 additionalPrometheusRules:
-  nginx-rules:
+  - name: nginx-rules
     groups:
-    - name: nginx-up-alerts
-      groups:
-        - name: nginx_up_rules
-          rules:
-            - alert: NginxServiceUp
-              expr: up == 0
-              for: 5s
-              labels:
-                severity: critical
-              annotations:
-                summary: "NGINX service is down"
-                description: "NGINX service has been detected as down for the last 5 minutes."
+      - name: nginx_up_rules
+        rules:
+          - alert: NginxServiceUp
+            expr: up == 0
+            for: 5s
+            labels:
+              severity: critical
+            annotations:
+              summary: "NGINX service is down"
+              description: "NGINX service has been detected as down for the last 5 minutes."
 #  rule-name:
 #    groups:
 #    - name: my_group
