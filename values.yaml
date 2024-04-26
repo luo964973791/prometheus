@@ -192,30 +192,20 @@ defaultRules:
 ## Provide custom recording or alerting rules to be deployed into the cluster.
 ##
 additionalPrometheusRulesMap:
-  redis-rules:
+  nginx-rules:
     groups:
-    - name: redis_rules
-      rules:
-        - alert: RedisDown
-          expr: redis_up == 0
-          for: 2s
-          labels:
-            severity: ERROR
-          annotations:
-            summary: "Redis instance {{ $labels.instance }} down"
-            description: "Redis instance {{ $labels.instance }} is down."
-#    - name: nginx-up-alerts
-#      groups:
-#        - name: nginx_up_rules
-#          rules:
-#            - alert: NginxServiceUp
-#              expr: up == 1
-#              for: 5s
-#              labels:
-#                severity: critical
-#              annotations:
-#                summary: "NGINX service is down"
-#                description: "NGINX service has been detected as down for the last 5 minutes."
+    - name: nginx-up-alerts
+      groups:
+        - name: nginx_up_rules
+          rules:
+            - alert: NginxServiceUp
+              expr: up == 0
+              for: 5s
+              labels:
+                severity: critical
+              annotations:
+                summary: "NGINX service is down"
+                description: "NGINX service has been detected as down for the last 5 minutes."
 #  rule-name:
 #    groups:
 #    - name: my_group
