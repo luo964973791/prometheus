@@ -191,7 +191,7 @@ defaultRules:
 
 ## Provide custom recording or alerting rules to be deployed into the cluster.
 ##
-additionalPrometheusRulesMap:
+additionalPrometheusRules:
   nginx-rules:
     groups:
     - name: nginx-up-alerts
