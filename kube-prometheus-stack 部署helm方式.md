@@ -132,7 +132,7 @@ additionalPrometheusRules:
       - name: nginx_up_rules
         rules:
           - alert: NginxServiceUp
-            expr: up == 0
+            expr: nginx_up == 0
             for: 5s
             labels:
               severity: critical
