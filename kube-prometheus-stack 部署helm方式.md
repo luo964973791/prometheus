@@ -126,7 +126,7 @@ from_address = @qq.com
 
 ```javascript
 cat <<EOF>values.yaml 
-additionalPrometheusRulesMap:
+additionalPrometheusRules:
   nginx-rules:
     groups:
     - name: nginx-up-alerts
@@ -141,6 +141,7 @@ additionalPrometheusRulesMap:
               annotations:
                 summary: "NGINX service is down"
                 description: "NGINX service has been detected as down for the last 5 minutes."
+
 
 
 fullnameOverride: prometheus
