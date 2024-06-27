@@ -58,7 +58,7 @@ scrape_configs:
   #      stub_status;
   #      allow 127.0.0.1;
   #  }
-  # docker run --name nginx-exporter --restart always -d -p 9113:9113 -e NGINX_SCRAPE_URI=http://172.27.0.3/stub_status nginx/nginx-prometheus-exporter
+  # docker run --name nginx-exporter --restart always -d -p 9113:9113 nginx/nginx-prometheus-exporter --nginx.scrape-uri=http://172.27.0.3/stub_status
   - job_name: 'nginx'
     scrape_interval: 15s
     static_configs:
