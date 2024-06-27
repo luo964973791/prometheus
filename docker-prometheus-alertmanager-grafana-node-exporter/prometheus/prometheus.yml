@@ -81,7 +81,7 @@ scrape_configs:
    #host = 172.27.0.3
    #port = 3306
    #user = root
-   #password = Test&12345
+   #password = 123456
    
    #docker run --name mysql-exporter -d -p 9104:9104 --restart always -v /root/.my.cnf:/cfg/.my.cnf  quay.io/prometheus/mysqld-exporter --config.my-cnf=/cfg/.my.cnf
   - job_name: 'MySQL-MGR'
