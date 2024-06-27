@@ -65,3 +65,12 @@ scrape_configs:
     - targets: ['172.27.0.3:9113']
       labels:
         instance: nginx服务器
+
+
+  #docker run -d --name redis_exporter   -p 9121:9121   -e REDIS_ADDR=redis://:123456@172.27.0.3:6379   -e REDIS_PASSWORD=123456  oliver006/redis_exporter:v1.38.0
+  - job_name: 'redis'
+    scrape_interval: 15s
+    static_configs:
+    - targets: ['172.27.0.3:9121']
+      labels:
+        instance: redis服务器
