@@ -5,4 +5,6 @@ ES alerts: wget https://raw.githubusercontent.com/samber/awesome-prometheus-aler
 nginx 面板ID: 12708
 
 redis 面板ID: 12980
+redis alerts: wget https://raw.githubusercontent.com/samber/awesome-prometheus-alerts/master/dist/rules/redis/oliver006-redis-exporter.yml
+
 ```
