@@ -43,7 +43,8 @@ scrape_configs:
     scrape_interval: 15s
     static_configs:
     - targets: ['pushgateway:9091']
-  # docker run -d --name elasticsearch_exporter -p 9114:9114 --restart always quay.io/prometheuscommunity/elasticsearch-exporter:latest --es.uri=http://elastic:123456@172.27.0.3:9200
+
+  # docker run -d --name elasticsearch_exporter -p 9114:9114 --restart always quay.io/prometheuscommunity/elasticsearch-exporter:latest --es.uri=http://elastic:xxxx@172.27.0.3:9200
   - job_name: 'es'
     scrape_interval: 15s
     static_configs:
