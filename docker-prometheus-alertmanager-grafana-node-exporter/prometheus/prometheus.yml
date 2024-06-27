@@ -51,3 +51,11 @@ scrape_configs:
     - targets: ['172.27.0.3:9114']
       labels:
         instance: es服务器
+
+  # docker run --name nginx-exporter --restart always -d -p 9113:9113 -e NGINX_SCRAPE_URI=http://172.27.0.3/stub_status nginx/nginx-prometheus-exporter
+  - job_name: 'nginx'
+    scrape_interval: 15s
+    static_configs:
+    - targets: ['172.27.0.3:9113']
+      labels:
+        instance: nginx服务器
