@@ -74,3 +74,19 @@ scrape_configs:
     - targets: ['172.27.0.3:9121']
       labels:
         instance: redis服务器
+
+
+   #[root@172 ~]# cat /root/.my.cnf 
+   #[client]
+   #host = 172.27.0.3
+   #port = 3306
+   #user = root
+   #password = Test&12345
+   
+   #docker run --name mysql-exporter -d -p 9104:9104 --restart always -v /root/.my.cnf:/cfg/.my.cnf  quay.io/prometheus/mysqld-exporter --config.my-cnf=/cfg/.my.cnf
+  - job_name: 'MySQL-MGR'
+    scrape_interval: 15s
+    static_configs:
+    - targets: ['172.27.0.3:9104']
+      labels:
+        instance: MySQL服务器
