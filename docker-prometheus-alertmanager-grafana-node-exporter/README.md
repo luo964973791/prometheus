@@ -9,4 +9,6 @@ redis alerts: wget https://raw.githubusercontent.com/samber/awesome-prometheus-a
 
 mysql 面板ID: 14057
 mysql alerts: wget https://raw.githubusercontent.com/samber/awesome-prometheus-alerts/master/dist/rules/mysql/mysqld-exporter.yml
+
+CPU、MEM、服务器面板ID: 8919
 ```
