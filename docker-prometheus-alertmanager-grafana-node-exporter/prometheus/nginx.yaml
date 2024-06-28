@@ -1,0 +1,49 @@
+groups:
+- name: 172-27-0-5-nginx rules
+  rules:
+
+#--------------------------------------------------------------------------nginx-----------------------------------------------------------------------------------
+    - alert: NginxIsDown
+      expr: nginx_up{job="nginx"} == 0
+      for: 5m
+      labels:
+        severity: page
+      annotations:
+        summary: NGINX service is down
+
+    - alert: NginxHighErrorRate
+      expr: sum(rate(nginx_http_requests_total{status=~"5.*"}[5m])) / sum(rate(nginx_http_requests_total[5m])) * 100 > 5
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High Nginx 5xx Error Rate (instance {{ $labels.instance }})"
+        description: "The Nginx instance {{ $labels.instance }} has a high 5xx error rate."
+
+    - alert: NginxSlowResponseTime
+      expr: avg(nginx_http_request_duration_seconds_bucket{le="1"} / sum(nginx_http_request_duration_seconds_count)) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High Nginx Slow Response Time (instance {{ $labels.instance }})"
+        description: "The Nginx instance {{ $labels.instance }} has a high average response time."
+
+    - alert: NginxHighConnections
+      expr: nginx_connections{state="active"} > 100
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High Nginx Connections (instance {{ $labels.instance }})"
+        description: "The Nginx instance {{ $labels.instance }} has a high number of active connections."
+
+    - alert: NginxLongQueue
+      expr: nginx_http_queue_length > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Long Nginx Request Queue (instance {{ $labels.instance }})"
+        description: "The Nginx instance {{ $labels.instance }} has a long request queue."
+#--------------------------------------------------------------------------nginx-----------------------------------------------------------------------------------
