@@ -11,8 +11,10 @@ alerting:
 
 # 报警(触发器)配置
 rule_files:
-  - "alert.yml"
-
+  - "MySQL-MGR.yaml"
+  - "nginx.yaml"
+  - "redis.yaml"
+  - "ES.yaml"
 # 搜刮配置
 scrape_configs:
   - job_name: 'prometheus'
