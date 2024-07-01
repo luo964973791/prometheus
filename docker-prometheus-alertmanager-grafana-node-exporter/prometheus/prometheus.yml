@@ -15,6 +15,7 @@ rule_files:
   - "nginx.yaml"
   - "redis.yaml"
   - "ES.yaml"
+  - "httpd.yml"
 # 搜刮配置
 scrape_configs:
   - job_name: 'prometheus'
@@ -67,6 +68,27 @@ scrape_configs:
     - targets: ['172.27.0.3:9113']
       labels:
         instance: nginx服务器
+
+  #[root@172 ~]# cat httpd.conf | grep -E 'mod_info|mod_status|httpd-info'
+  #LoadModule status_module modules/mod_status.so  去掉#注释
+  #LoadModule info_module modules/mod_info.so      去掉#注释
+  #Include conf/extra/httpd-info.conf              去掉#注释
+  
+  #[root@172 ~]# cat httpd-info.conf | grep -A 3 '<Location /server-status>'
+  #<Location /server-status>     去掉#注释
+  #    SetHandler server-status  去掉#注释
+  #    Require all granted       去掉#注释
+  #</Location>                   去掉#注释
+  
+  #docker run -d -p 80:80 --name httpd --restart always -v /root/httpd.conf:/usr/local/apache2/conf/httpd.conf -v /root/httpd-info.conf:/usr/local/apache2/conf/extra/httpd-info.conf httpd
+  #
+  #docker run --restart always -d --name apache-exporter -p 9117:9117 lusotycoon/apache-exporter --scrape_uri=http://172.27.0.3/server-status?auto --web.listen-address=:9117 --telemetry.endpoint=/metrics
+  - job_name: 'apache-http'
+    scrape_interval: 15s
+    static_configs:
+    - targets: ['172.27.0.3:9104']
+      labels:
+        instance: 172-27-0-3-httpd服务器
 
 
   #docker run -d --name redis_exporter   -p 9121:9121   -e REDIS_ADDR=redis://:123456@172.27.0.3:6379   -e REDIS_PASSWORD=123456  oliver006/redis_exporter:v1.38.0
