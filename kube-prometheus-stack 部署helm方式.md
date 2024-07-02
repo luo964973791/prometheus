@@ -54,6 +54,105 @@ alertmanager:
         </body>
       </html>
       {{- end }}
+
+
+#有高级规则依次添加
+additionalPrometheusRules:
+#--------------------------------------------------------------------------nginx-----------------------------------------------------------------------------------
+  - name: 172-27-0-9-nginx-rules
+    groups:
+      - name: 172-27-0-9-nginx rules
+        rules:
+          - alert: NginxIsDown
+            expr: nginx_up{job="nginx"} == 0
+            for: 5m
+            labels:
+              severity: page
+            annotations:
+              summary: NGINX service is down
+
+          - alert: NginxHighErrorRate
+            expr: sum(rate(nginx_http_requests_total{status=~"5.*"}[5m])) / sum(rate(nginx_http_requests_total[5m])) * 100 > 5
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High Nginx 5xx Error Rate (instance {{ $labels.instance }})"
+              description: "The Nginx instance {{ $labels.instance }} has a high 5xx error rate."
+
+          - alert: NginxSlowResponseTime
+            expr: avg(nginx_http_request_duration_seconds_bucket{le="1"} / sum(nginx_http_request_duration_seconds_count)) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High Nginx Slow Response Time (instance {{ $labels.instance }})"
+              description: "The Nginx instance {{ $labels.instance }} has a high average response time."
+
+          - alert: NginxHighConnections
+            expr: nginx_connections{state="active"} > 100
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High Nginx Connections (instance {{ $labels.instance }})"
+              description: "The Nginx instance {{ $labels.instance }} has a high number of active connections."
+
+          - alert: NginxLongQueue
+            expr: nginx_http_queue_length > 10
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Long Nginx Request Queue (instance {{ $labels.instance }})"
+              description: "The Nginx instance {{ $labels.instance }} has a long request queue."
+#--------------------------------------------------------------------------nginx-----------------------------------------------------------------------------------
+
+#--------------------------------------------------------------------------httpd-----------------------------------------------------------------------------------
+  - name: 172-27-0-4-httpd-rules
+    groups:
+    - name: 172-27-0-4-httpd rules
+      rules:    
+        - alert: ApacheDown
+          expr: 'apache_up == 0'
+          for: 0m
+          labels:
+            severity: critical
+          annotations:
+            summary: Apache down (instance {{ $labels.instance }})
+            description: "Apache down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    
+        - alert: ApacheWorkersLoad
+          expr: '(sum by (instance) (apache_workers{state="busy"}) / sum by (instance) (apache_scoreboard) ) * 100 > 80'
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: Apache workers load (instance {{ $labels.instance }})
+            description: "Apache workers in busy state approach the max workers count 80% workers busy on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    
+        - alert: ApacheRestart
+          expr: 'apache_uptime_seconds_total / 60 < 1'
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: Apache restart (instance {{ $labels.instance }})
+            description: "Apache has just been restarted.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+#--------------------------------------------------------------------------httpd-----------------------------------------------------------------------------------
+
+
+
+    additionalScrapeConfigs:
+      - job_name: "172-27-0-3-nginx-exporter"
+        scrape_interval: 15s
+        static_configs:
+          - targets: [ '172.27.0.3:9113' ]
+      - job_name: "172-27-0-4-apache-exporter"
+        scrape_interval: 15s
+        static_configs:
+          - targets: [ '172.27.0.4:9117' ]
+
 #启动
 helm install prometheus -n monitoring -f ./values.yaml . \
   --set grafana.service.type=LoadBalancer \
