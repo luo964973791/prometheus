@@ -4,6 +4,7 @@
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 helm pull prometheus-community/kube-prometheus-stack
+kubectl create ns monitoring
 tar zxvf kube-prometheus-stack-x.x.tgz
 cd kube-prometheus-stack
 vi values.yaml  #更改里面的配置,这里已邮箱报警为例.
