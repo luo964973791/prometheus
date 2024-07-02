@@ -8,7 +8,7 @@ nginx 面板ID: 12708
 httpd面板： 20465
 httpd-exporter: wget https://raw.githubusercontent.com/samber/awesome-prometheus-alerts/master/dist/rules/apache/lusitaniae-apache-exporter.yml
 
-redis 面板ID: 12980
+redis 面板ID: 14661
 redis alerts: wget https://raw.githubusercontent.com/samber/awesome-prometheus-alerts/master/dist/rules/redis/oliver006-redis-exporter.yml
 
 mysql 面板ID: 14057
