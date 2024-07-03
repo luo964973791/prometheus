@@ -175,6 +175,29 @@ helm install prometheus -n monitoring -f ./values.yaml . \
   --set grafana.persistence.storageClassName=local-path
 
 
+
+#更新values.yaml 配置
+helm upgrade prometheus -n monitoring -f ./values.yaml . \
+  --set grafana.service.type=LoadBalancer \
+  --set prometheus.thanosService.enabled=true \
+  --set prometheus.service.type=LoadBalancer \
+  --set kubeEtcd.enabled=true \
+  --set kubeEtcd.endpoints[0]=172.27.0.3 \
+  --set kubeEtcd.service.port=2381 \
+  --set kubeEtcd.service.targetPort=2381 \
+  --set prometheus.prometheusSpec.retention=365d \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
+  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
+  --set alertmanager.service.type=LoadBalancer \
+  --set alertmanager.tplConfig=false \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
+  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
+  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+  --set grafana.persistence.enabled=true \
+  --set grafana.defaultDashboardsTimezone=cst \
+  --set grafana.persistence.storageClassName=local-path
+
+
 #检查kube-proxy
 kubectl edit cm/kube-proxy -n kube-system
 ## Change from
