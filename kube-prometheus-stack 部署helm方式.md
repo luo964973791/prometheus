@@ -197,12 +197,12 @@ helm upgrade prometheus -n monitoring -f ./values.yaml . \
   --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=local-path
 
-###############################################################################
-sudo cat << EOF > /tmp/alertmanager.yaml
+####################################################################################
+vi /tmp/alertmanager.yaml
 global:
   resolve_timeout: 30s
   smtp_auth_password: "12345"
-  smtp_auth_username: from@qq.com
+  smtp_auth_username: 964973791@qq.com
   smtp_from: from@qq.com
   smtp_require_tls: false
   smtp_smarthost: smtp.qq.com:465
@@ -225,10 +225,11 @@ route:
   repeat_interval: 1h
 templates:
 - /etc/alertmanager/config/*.tmpl
-EOF
 
 
-sudo cat << EOF > /tmp/email.tmpl
+
+
+vi /tmp/email.tmpl
 {{ define "email.html" }}
 <html>
   <body>
@@ -246,11 +247,11 @@ sudo cat << EOF > /tmp/email.tmpl
   </body>
 </html>
 {{- end }}
-EOF
 
 
-#!/bin/bash
-cat << 'EOF' > /tmp/update_alertmanager.sh
+
+
+vi /tmp/update_alertmanager.sh
 #!/bin/bash
 
 # 配置变量
@@ -337,16 +338,11 @@ fi
 kubectl apply -f secret2.yaml -n "$NAMESPACE"
 rm -f secret2.yaml "$COMPRESSED_ALERTMANAGER_FILE"
 kubectl delete pod -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-{0..1}
+rm -rf /tmp/alertmanager.yaml && rm -rf /tmp/email.tmpl && rm -rf /tmp/update_alertmanager.sh
 echo "Secret $SECRET1_NAME 和 $SECRET2_NAME 在 namespace $NAMESPACE 中已更新成功！"
-EOF
 
 
-chmod +x /tmp/update_alertmanager.sh
-bash /tmp/update_alertmanager.sh
-rm -rf /tmp/update_alertmanager.sh && rm -rf /tmp/alertmanager.yaml && rm -rf /tmp/email.tmpl
-
-
-##############################################################################################
+####################################################################################
 
 #检查kube-proxy
 kubectl edit cm/kube-proxy -n kube-system
