@@ -202,7 +202,7 @@ vi /tmp/alertmanager.yaml
 global:
   resolve_timeout: 30s
   smtp_auth_password: "12345"
-  smtp_auth_username: 964973791@qq.com
+  smtp_auth_username: 12345@qq.com
   smtp_from: from@qq.com
   smtp_require_tls: false
   smtp_smarthost: smtp.qq.com:465
