@@ -197,6 +197,156 @@ helm upgrade prometheus -n monitoring -f ./values.yaml . \
   --set grafana.defaultDashboardsTimezone=cst \
   --set grafana.persistence.storageClassName=local-path
 
+###############################################################################
+sudo cat << EOF > /tmp/alertmanager.yaml
+global:
+  resolve_timeout: 30s
+  smtp_auth_password: "12345"
+  smtp_auth_username: from@qq.com
+  smtp_from: from@qq.com
+  smtp_require_tls: false
+  smtp_smarthost: smtp.qq.com:465
+receivers:
+- email_configs:
+  - headers:
+      subject: '{{ .CommonLabels.subject }}'
+    html: '{{ template "email.html" . }}'
+    send_resolved: true
+    to: to@qq.com
+  name: Default
+route:
+  continue: false
+  group_by:
+  - cluster
+  - alertname
+  group_interval: 30s
+  group_wait: 30s
+  receiver: Default
+  repeat_interval: 1h
+templates:
+- /etc/alertmanager/config/*.tmpl
+EOF
+
+
+sudo cat << EOF > /tmp/email.tmpl
+{{ define "email.html" }}
+<html>
+  <body>
+    {{- if gt (len .Alerts.Firing) 0 -}}
+    {{- range $index, $alert := .Alerts -}}
+      <p>========= ERROR ==========</p>
+      <h3 style="color:red;">告警名称: {{ .Labels.alertname }}</h3>
+      <p>告警级别: {{ .Labels.severity }}</p>
+      <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
+      <p>告警详情: {{ .Annotations.summary }}</p>
+      <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+      <p>========= END ==========</p>
+    {{- end }}
+    {{- end }}
+  </body>
+</html>
+{{- end }}
+EOF
+
+
+#!/bin/bash
+cat << 'EOF' > /tmp/update_alertmanager.sh
+#!/bin/bash
+
+# 配置变量
+NAMESPACE="monitoring"
+SECRET1_NAME="alertmanager-prometheus-kube-prometheus-alertmanager"
+SECRET2_NAME="alertmanager-prometheus-kube-prometheus-alertmanager-generated"
+ALERTMANAGER_FILE="/tmp/alertmanager.yaml"
+EMAIL_TMPL_FILE="/tmp/email.tmpl"
+COMPRESSED_ALERTMANAGER_FILE="alertmanager.yaml.gz"
+
+# 检查依赖工具
+if ! command -v kubectl &> /dev/null; then
+    echo "Error: kubectl 命令未安装或不可用，请安装 kubectl."
+    exit 1
+fi
+
+if ! command -v base64 &> /dev/null; then
+    echo "Error: base64 命令未安装或不可用，请安装 base64."
+    exit 1
+fi
+
+# 检查 yq 是否安装，如果没有安装则使用 sed 替代
+USE_YQ=false
+if command -v yq &> /dev/null; then
+    USE_YQ=true
+fi
+
+# 检查文件是否存在
+if [ ! -f "$ALERTMANAGER_FILE" ]; then
+    echo "Error: 找不到 $ALERTMANAGER_FILE 文件，请确保该文件存在."
+    exit 1
+fi
+
+if [ ! -f "$EMAIL_TMPL_FILE" ]; then
+    echo "Error: 找不到 $EMAIL_TMPL_FILE 文件，请确保该文件存在."
+    exit 1
+fi
+
+# 生成 alertmanager.yaml 文件的 base64 编码
+ALERTMANAGER_BASE64=$(base64 -w 0 "$ALERTMANAGER_FILE")
+
+# 生成 email.tmpl 文件的 base64 编码
+EMAIL_TMPL_BASE64=$(base64 -w 0 "$EMAIL_TMPL_FILE")
+
+# 将 alertmanager.yaml 压缩为 alertmanager.yaml.gz
+gzip -c "$ALERTMANAGER_FILE" > "$COMPRESSED_ALERTMANAGER_FILE"
+
+# 生成压缩后的 alertmanager.yaml.gz 文件的 base64 编码
+ALERTMANAGER_GZ_BASE64=$(base64 -w 0 "$COMPRESSED_ALERTMANAGER_FILE")
+
+# 更新第一个 Secret: alertmanager-prometheus-kube-prometheus-alertmanager
+kubectl get secret "$SECRET1_NAME" -n "$NAMESPACE" -o yaml > secret1.yaml
+
+if [ "$USE_YQ" = true ]; then
+    yq eval ".data[\"alertmanager.yaml\"] = \"$ALERTMANAGER_BASE64\"" -i secret1.yaml
+    yq eval ".data[\"email.tmpl\"] = \"$EMAIL_TMPL_BASE64\"" -i secret1.yaml
+else
+    sed -i "s|alertmanager.yaml: .*|alertmanager.yaml: $ALERTMANAGER_BASE64|" secret1.yaml
+    if grep -q "email.tmpl:" secret1.yaml; then
+        sed -i "s|email.tmpl: .*|email.tmpl: $EMAIL_TMPL_BASE64|" secret1.yaml
+    else
+        echo "  email.tmpl: $EMAIL_TMPL_BASE64" >> secret1.yaml
+    fi
+fi
+
+kubectl apply -f secret1.yaml -n "$NAMESPACE"
+rm -f secret1.yaml
+
+# 更新第二个 Secret: alertmanager-prometheus-kube-prometheus-alertmanager-generated
+kubectl get secret "$SECRET2_NAME" -n "$NAMESPACE" -o yaml > secret2.yaml
+
+if [ "$USE_YQ" = true ]; then
+    yq eval ".data[\"alertmanager.yaml.gz\"] = \"$ALERTMANAGER_GZ_BASE64\"" -i secret2.yaml
+    yq eval ".data[\"email.tmpl\"] = \"$EMAIL_TMPL_BASE64\"" -i secret2.yaml
+else
+    sed -i "s|alertmanager.yaml.gz: .*|alertmanager.yaml.gz: $ALERTMANAGER_GZ_BASE64|" secret2.yaml
+    if grep -q "email.tmpl:" secret2.yaml; then
+        sed -i "s|email.tmpl: .*|email.tmpl: $EMAIL_TMPL_BASE64|" secret2.yaml
+    else
+        echo "  email.tmpl: $EMAIL_TMPL_BASE64" >> secret2.yaml
+    fi
+fi
+
+kubectl apply -f secret2.yaml -n "$NAMESPACE"
+rm -f secret2.yaml "$COMPRESSED_ALERTMANAGER_FILE"
+kubectl delete pod -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-{0..1}
+echo "Secret $SECRET1_NAME 和 $SECRET2_NAME 在 namespace $NAMESPACE 中已更新成功！"
+EOF
+
+
+chmod +x /tmp/update_alertmanager.sh
+bash /tmp/update_alertmanager.sh
+rm -rf /tmp/update_alertmanager.sh && rm -rf /tmp/alertmanager.yaml && rm -rf /tmp/email.tmpl
+
+
+##############################################################################################
 
 #检查kube-proxy
 kubectl edit cm/kube-proxy -n kube-system
