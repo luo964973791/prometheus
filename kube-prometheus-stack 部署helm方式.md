@@ -331,12 +331,14 @@ ruler:
     enabled: true
   alertmanagers:
     - http://alertmanager-operated.monitoring:9093
-  config:
+  config: |-
     groups:
       - name: "metamonitoring"
         rules:
           - alert: "PrometheusDown"
             expr: absent(up{prometheus="monitoring/prometheus-kube-prometheus-prometheus"})
+    persistence:
+        enabled: true
   persistence:
     enabled: true
 
