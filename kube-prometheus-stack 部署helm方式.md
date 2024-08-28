@@ -74,9 +74,9 @@ alertmanager:
       group_interval: 5m
       repeat_interval: 12h
       routes:
-      - match:
-          alertname: Watchdog
-        receiver: null
+        - matchers:
+            - alertname = "Watchdog"
+          receiver: null
     receivers:
       - name: 'Default'
         email_configs:
