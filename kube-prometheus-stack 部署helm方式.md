@@ -7,7 +7,7 @@ helm pull prometheus-community/kube-prometheus-stack
 kubectl create ns monitoring
 tar zxvf kube-prometheus-stack-x.x.tgz
 cd kube-prometheus-stack
-cat >> values.yaml <<EOF
+cat > values.yaml <<EOF
 prometheus:
   service:
     type: LoadBalancer
