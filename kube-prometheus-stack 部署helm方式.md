@@ -276,12 +276,94 @@ kubectl get prometheusrules -A -o yaml | sed 's/for: 10m/for: 30s/g' | kubectl a
 kubectl get prometheusrules -A -o yaml | sed 's/for: 5m/for: 30s/g' | kubectl apply -f -
 
 
+#部署thanos.
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+cat > values.yaml <<EOF
+objstoreConfig: |-
+  type: s3
+  config:
+    bucket: thanos
+    endpoint: 172.27.0.3:9000
+    access_key: minioadmin
+    secret_key: minioadmin
+    insecure: true
+
+query:
+  enabled: true
+  replicaCount: 3
+  replicaLabel: prometheus_replica
+  stores:
+    - "prometheus-kube-prometheus-thanos-discovery.monitoring:10901"
+
+queryFrontend:
+  enabled: true
+  service:
+    type: LoadBalancer
+
+bucketweb:
+  enabled: true
+  service:
+    type: LoadBalancer
+
+compactor:
+  enabled: true
+  persistence:
+    enabled: true
+
+storegateway:
+  enabled: true
+  persistence:
+    enabled: true
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+receive:
+  enabled: false
+
+ruler:
+  enabled: true
+  replicaLabel: prometheus_replica
+  serviceMonitor:
+    enabled: true
+  alertmanagers:
+    - http://alertmanager-operated.monitoring:9093
+  config:
+    groups:
+      - name: "metamonitoring"
+        rules:
+          - alert: "PrometheusDown"
+            expr: absent(up{prometheus="monitoring/prometheus-kube-prometheus-prometheus"})
+  persistence:
+    enabled: true
+
+minio:
+  enabled: true
+  auth:
+    rootUser: minioadmin
+    rootPassword: "minioadmin"
+  defaultBuckets: "thanos"
+  service:
+    type: LoadBalancer
+EOF
+
+helm install thanos bitnami/thanos --namespace monitoring -f values.yaml
+helm upgrade thanos bitnami/thanos --namespace monitoring -f values.yaml
+#thanos每两个小时上报一次数据到S3对象存储，才部署好对象存储没数据正常，下面的命令手动触发是否上传.
+curl -X POST http://$(kubectl get svc -n monitoring | grep prometheus-kube-prometheus-prometheus | awk '{print $3}'):9090/api/v1/admin/tsdb/snapshot
+kubectl logs -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -c thanos-sidecar
+```
+
 #监控nginx
 helm install nginx-export -n monitoring \
   --set nginxServer="http://nginx-service.nginx.svc.cluster.local/stub_status" \
   --set serviceMonitor.enabled=true \
   prometheus-community/prometheus-nginx-exporter
 ```
+
 
 ### 四、访问grafana
 
