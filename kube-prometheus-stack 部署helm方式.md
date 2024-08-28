@@ -60,10 +60,10 @@ alertmanager:
   config:
     global:
       resolve_timeout: 5m
-      smtp_from: '1145@qq.com'
+      smtp_from: '456@qq.com'
       smtp_smarthost: 'smtp.qq.com:465'
-      smtp_auth_username: '1145@qq.com'
-      smtp_auth_password: 'krl'
+      smtp_auth_username: '456@qq.com'
+      smtp_auth_password: 'kl'
       smtp_require_tls: false
     templates:
       - '/etc/alertmanager/config/*.tmpl'
@@ -80,7 +80,7 @@ alertmanager:
     receivers:
       - name: 'Default'
         email_configs:
-          - to: '9649@qq.com'
+          - to: '123@qq.com'
             send_resolved: true
             headers:
               subject: "{{ .CommonLabels.subject }}"
@@ -99,7 +99,7 @@ alertmanager:
             <p>告警级别: {{ .Labels.severity }}</p>
             <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
             <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>告警时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+            <p>告警时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
             <p>========= END ==========</p>
           {{- end }}
           {{- end }}
@@ -110,7 +110,8 @@ alertmanager:
             <p>告警级别: {{ .Labels.severity }}</p>
             <p>告警机器: {{ .Labels.instance }}</p>
             <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>恢复时间: {{ ($alert.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+            <p>恢复时间: {{ (.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+            <p>故障时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
             <p>========= END ==========</p>
           {{- end }}
           {{- end }}
@@ -148,7 +149,6 @@ grafana:
         type: prometheus
         url: http://thanos-query-frontend.monitoring:9090
         access: proxy
-
 
 #有高级规则依次添加
 additionalPrometheusRules:
