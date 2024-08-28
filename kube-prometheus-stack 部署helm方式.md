@@ -60,10 +60,10 @@ alertmanager:
   config:
     global:
       resolve_timeout: 5m
-      smtp_from: '1145023603@qq.com'
+      smtp_from: '1145@qq.com'
       smtp_smarthost: 'smtp.qq.com:465'
-      smtp_auth_username: '1145023603@qq.com'
-      smtp_auth_password: 'krlwmlvmloegjgaf'
+      smtp_auth_username: '1145@qq.com'
+      smtp_auth_password: 'krl'
       smtp_require_tls: false
     templates:
       - '/etc/alertmanager/config/*.tmpl'
@@ -80,7 +80,7 @@ alertmanager:
     receivers:
       - name: 'Default'
         email_configs:
-          - to: '964973791@qq.com'
+          - to: '9649@qq.com'
             send_resolved: true
             headers:
               subject: "{{ .CommonLabels.subject }}"
