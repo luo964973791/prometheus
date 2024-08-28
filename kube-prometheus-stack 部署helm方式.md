@@ -7,34 +7,86 @@ helm pull prometheus-community/kube-prometheus-stack
 kubectl create ns monitoring
 tar zxvf kube-prometheus-stack-x.x.tgz
 cd kube-prometheus-stack
-vi values.yaml  #更改里面的配置,这里已邮箱报警为例.
+cat >> values.yaml <<EOF
+prometheus:
+  service:
+    type: LoadBalancer
+  prometheusSpec:
+    replicas: 2
+    retention: 12h
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          resources:
+            requests:
+              storage: 2Gi
+    thanos:
+      objectStorageConfig:
+        existingSecret:
+          name: thanos-objstore
+          key: objstore.yml
+    externalLabels:
+      cluster: cluster-A
+  thanosService:
+    enabled: true
+    type: LoadBalancer
+    clusterIP: ""
+  thanosServiceMonitor:
+    enabled: true
+  extraSecret:
+    name: thanos-objstore
+    data:
+      objstore.yml: |
+        type: S3
+        config:
+          bucket: "thanos"
+          endpoint: "172.27.0.3:9000"
+          access_key: "minioadmin"
+          secret_key: "minioadmin"
+          insecure: true
+kubeEtcd:
+  enabled: true
+  endpoints:
+    - 172.27.0.3
+  service:
+    port: 2381
+    targetPort: 2381
+
 alertmanager:
+  enabled: true
+  service:
+    type: LoadBalancer
   config:
     global:
-      resolve_timeout: 30s
-      smtp_from: 'from@qq.com'
+      resolve_timeout: 5m
+      smtp_from: '1145@qq.com'
       smtp_smarthost: 'smtp.qq.com:465'
-      smtp_auth_username: 'from@qq.com'
-      smtp_auth_password: '12345'
+      smtp_auth_username: '1145@qq.com'
+      smtp_auth_password: 'abcd'
       smtp_require_tls: false
     templates:
       - '/etc/alertmanager/config/*.tmpl'
     route:
-      receiver: Default
-      group_by: ['cluster','alertname']
-      continue: false
+      receiver: 'Default'
+      group_by: ['alertname', 'cluster']
       group_wait: 30s
-      group_interval: 30s
-      repeat_interval: 1h
+      group_interval: 5m
+      repeat_interval: 12h
+      routes:
+      - match:
+          alertname: Watchdog
+        receiver: null
     receivers:
-    - name: Default
-      email_configs:
-      - to: 'to@qq.com'
-        send_resolved: true
-        headers:
-          subject: "{{ .CommonLabels.subject }}"
-        html: '{{ template "email.html" . }}'
-  tplConfig: false
+      - name: 'Default'
+        email_configs:
+          - to: '9649@qq.com'
+            send_resolved: true
+            headers:
+              subject: "{{ .CommonLabels.subject }}"
+            html: '{{ template "email.html" . }}'
+        
+  tplConfig: false  # 保持为 false，不让 Helm 模板引擎处理 Alertmanager 模板语法
   templateFiles:
     email.tmpl: |-
       {{ define "email.html" }}
@@ -51,9 +103,52 @@ alertmanager:
             <p>========= END ==========</p>
           {{- end }}
           {{- end }}
+          {{- if gt (len .Alerts.Resolved) 0 -}}
+          {{- range $index, $alert := .Alerts -}}
+            <p>========= INFO ==========</p>
+            <h3 style="color:green;">告警名称: {{ .Labels.alertname }}</h3>
+            <p>告警级别: {{ .Labels.severity }}</p>
+            <p>告警机器: {{ .Labels.instance }}</p>
+            <p>告警详情: {{ .Annotations.summary }}</p>
+            <p>恢复时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+            <p>========= END ==========</p>
+          {{- end }}
+          {{- end }}
         </body>
       </html>
       {{- end }}
+  alertmanagerSpec:
+    replicas: 1
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          resources:
+            requests:
+              storage: 2Gi
+
+grafana:
+  service:
+    type: LoadBalancer
+  persistence:
+    enabled: true
+    storageClassName: local-path
+  defaultDashboardsTimezone: cst
+  enabled: true
+  sidecar:
+    dashboards:
+      multicluster:
+        global:
+          enabled: true
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Thanos
+        type: prometheus
+        url: http://thanos-query-frontend.monitoring:9090
+        access: proxy
+EOF
 
 
 #有高级规则依次添加
@@ -153,193 +248,9 @@ additionalPrometheusRules:
         static_configs:
           - targets: [ '172.27.0.4:9117' ]
 
-#启动
-helm install prometheus -n monitoring -f ./values.yaml . \
-  --set grafana.service.type=LoadBalancer \
-  --set prometheus.thanosService.enabled=true \
-  --set prometheus.service.type=LoadBalancer \
-  --set kubeEtcd.enabled=true \
-  --set kubeEtcd.endpoints[0]=172.27.0.3 \
-  --set kubeEtcd.service.port=2381 \
-  --set kubeEtcd.service.targetPort=2381 \
-  --set prometheus.prometheusSpec.retention=365d \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set alertmanager.service.type=LoadBalancer \
-  --set alertmanager.tplConfig=false \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
-  --set grafana.persistence.enabled=true \
-  --set grafana.defaultDashboardsTimezone=cst \
-  --set grafana.persistence.storageClassName=local-path
-
-
-
-#更新values.yaml 配置
-helm upgrade prometheus -n monitoring -f ./values.yaml . \
-  --set grafana.service.type=LoadBalancer \
-  --set prometheus.thanosService.enabled=true \
-  --set prometheus.service.type=LoadBalancer \
-  --set kubeEtcd.enabled=true \
-  --set kubeEtcd.endpoints[0]=172.27.0.3 \
-  --set kubeEtcd.service.port=2381 \
-  --set kubeEtcd.service.targetPort=2381 \
-  --set prometheus.prometheusSpec.retention=365d \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=local-path \
-  --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set alertmanager.service.type=LoadBalancer \
-  --set alertmanager.tplConfig=false \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.storageClassName=local-path \
-  --set alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=2Gi \
-  --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
-  --set grafana.persistence.enabled=true \
-  --set grafana.defaultDashboardsTimezone=cst \
-  --set grafana.persistence.storageClassName=local-path
-
 ####################################################################################
-vi /tmp/alertmanager.yaml
-global:
-  resolve_timeout: 30s
-  smtp_auth_password: "12345"
-  smtp_auth_username: 12345@qq.com
-  smtp_from: from@qq.com
-  smtp_require_tls: false
-  smtp_smarthost: smtp.qq.com:465
-receivers:
-- email_configs:
-  - headers:
-      subject: '{{ .CommonLabels.subject }}'
-    html: '{{ template "email.html" . }}'
-    send_resolved: true
-    to: to@qq.com
-  name: Default
-route:
-  continue: false
-  group_by:
-  - cluster
-  - alertname
-  group_interval: 30s
-  group_wait: 30s
-  receiver: Default
-  repeat_interval: 1h
-templates:
-- /etc/alertmanager/config/*.tmpl
-
-
-
-
-vi /tmp/email.tmpl
-{{ define "email.html" }}
-<html>
-  <body>
-    {{- if gt (len .Alerts.Firing) 0 -}}
-    {{- range $index, $alert := .Alerts -}}
-      <p>========= ERROR ==========</p>
-      <h3 style="color:red;">告警名称: {{ .Labels.alertname }}</h3>
-      <p>告警级别: {{ .Labels.severity }}</p>
-      <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
-      <p>告警详情: {{ .Annotations.summary }}</p>
-      <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
-      <p>========= END ==========</p>
-    {{- end }}
-    {{- end }}
-  </body>
-</html>
-{{- end }}
-
-
-
-
-vi /tmp/update_alertmanager.sh
-#!/bin/bash
-
-# 配置变量
-NAMESPACE="monitoring"
-SECRET1_NAME="alertmanager-prometheus-kube-prometheus-alertmanager"
-SECRET2_NAME="alertmanager-prometheus-kube-prometheus-alertmanager-generated"
-ALERTMANAGER_FILE="/tmp/alertmanager.yaml"
-EMAIL_TMPL_FILE="/tmp/email.tmpl"
-COMPRESSED_ALERTMANAGER_FILE="alertmanager.yaml.gz"
-
-# 检查依赖工具
-if ! command -v kubectl &> /dev/null; then
-    echo "Error: kubectl 命令未安装或不可用，请安装 kubectl."
-    exit 1
-fi
-
-if ! command -v base64 &> /dev/null; then
-    echo "Error: base64 命令未安装或不可用，请安装 base64."
-    exit 1
-fi
-
-# 检查 yq 是否安装，如果没有安装则使用 sed 替代
-USE_YQ=false
-if command -v yq &> /dev/null; then
-    USE_YQ=true
-fi
-
-# 检查文件是否存在
-if [ ! -f "$ALERTMANAGER_FILE" ]; then
-    echo "Error: 找不到 $ALERTMANAGER_FILE 文件，请确保该文件存在."
-    exit 1
-fi
-
-if [ ! -f "$EMAIL_TMPL_FILE" ]; then
-    echo "Error: 找不到 $EMAIL_TMPL_FILE 文件，请确保该文件存在."
-    exit 1
-fi
-
-# 生成 alertmanager.yaml 文件的 base64 编码
-ALERTMANAGER_BASE64=$(base64 -w 0 "$ALERTMANAGER_FILE")
-
-# 生成 email.tmpl 文件的 base64 编码
-EMAIL_TMPL_BASE64=$(base64 -w 0 "$EMAIL_TMPL_FILE")
-
-# 将 alertmanager.yaml 压缩为 alertmanager.yaml.gz
-gzip -c "$ALERTMANAGER_FILE" > "$COMPRESSED_ALERTMANAGER_FILE"
-
-# 生成压缩后的 alertmanager.yaml.gz 文件的 base64 编码
-ALERTMANAGER_GZ_BASE64=$(base64 -w 0 "$COMPRESSED_ALERTMANAGER_FILE")
-
-# 更新第一个 Secret: alertmanager-prometheus-kube-prometheus-alertmanager
-kubectl get secret "$SECRET1_NAME" -n "$NAMESPACE" -o yaml > secret1.yaml
-
-if [ "$USE_YQ" = true ]; then
-    yq eval ".data[\"alertmanager.yaml\"] = \"$ALERTMANAGER_BASE64\"" -i secret1.yaml
-    yq eval ".data[\"email.tmpl\"] = \"$EMAIL_TMPL_BASE64\"" -i secret1.yaml
-else
-    sed -i "s|alertmanager.yaml: .*|alertmanager.yaml: $ALERTMANAGER_BASE64|" secret1.yaml
-    if grep -q "email.tmpl:" secret1.yaml; then
-        sed -i "s|email.tmpl: .*|email.tmpl: $EMAIL_TMPL_BASE64|" secret1.yaml
-    else
-        echo "  email.tmpl: $EMAIL_TMPL_BASE64" >> secret1.yaml
-    fi
-fi
-
-kubectl apply -f secret1.yaml -n "$NAMESPACE"
-rm -f secret1.yaml
-
-# 更新第二个 Secret: alertmanager-prometheus-kube-prometheus-alertmanager-generated
-kubectl get secret "$SECRET2_NAME" -n "$NAMESPACE" -o yaml > secret2.yaml
-
-if [ "$USE_YQ" = true ]; then
-    yq eval ".data[\"alertmanager.yaml.gz\"] = \"$ALERTMANAGER_GZ_BASE64\"" -i secret2.yaml
-    yq eval ".data[\"email.tmpl\"] = \"$EMAIL_TMPL_BASE64\"" -i secret2.yaml
-else
-    sed -i "s|alertmanager.yaml.gz: .*|alertmanager.yaml.gz: $ALERTMANAGER_GZ_BASE64|" secret2.yaml
-    if grep -q "email.tmpl:" secret2.yaml; then
-        sed -i "s|email.tmpl: .*|email.tmpl: $EMAIL_TMPL_BASE64|" secret2.yaml
-    else
-        echo "  email.tmpl: $EMAIL_TMPL_BASE64" >> secret2.yaml
-    fi
-fi
-
-kubectl apply -f secret2.yaml -n "$NAMESPACE"
-rm -f secret2.yaml "$COMPRESSED_ALERTMANAGER_FILE"
-kubectl delete pod -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-{0..1}
-rm -rf /tmp/alertmanager.yaml && rm -rf /tmp/email.tmpl && rm -rf /tmp/update_alertmanager.sh
-echo "Secret $SECRET1_NAME 和 $SECRET2_NAME 在 namespace $NAMESPACE 中已更新成功！"
+helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f ./values.yaml
+helm upgrade prometheus prometheus-community/kube-prometheus-stack -n monitoring -f ./values.yaml
 
 
 ####################################################################################
@@ -389,178 +300,4 @@ host = smtp.qq.com:465
 user = @qq.com
 password = 
 from_address = @qq.com
-```
-
-### 五、部署thanos
-
-```javascript
-cat <<EOF>values.yaml 
-additionalPrometheusRules:
-  - name: nginx-rules
-    groups:
-      - name: nginx_up_rules
-        rules:
-          - alert: NginxServiceUp
-            expr: nginx_up == 0
-            for: 5s
-            labels:
-              severity: critical
-            annotations:
-              summary: "NGINX service is down"
-              description: "NGINX service has been detected as down for the last 5 minutes."
-
-
-
-
-fullnameOverride: prometheus
-defaultRules:
-  create: true
-  rules:
-    alertmanager: true
-    etcd: true
-    configReloaders: true
-    general: true
-    k8s: true
-    kubeApiserverAvailability: true
-    kubeApiserverBurnrate: true
-    kubeApiserverHistogram: true
-    kubeApiserverSlos: true
-    kubelet: true
-    kubeProxy: true
-    kubePrometheusGeneral: true
-    kubePrometheusNodeRecording: true
-    kubernetesApps: true
-    kubernetesResources: true
-    kubernetesStorage: true
-    kubernetesSystem: true
-    kubeScheduler: true
-    kubeStateMetrics: true
-    network: true
-    node: true
-    nodeExporterAlerting: true
-    nodeExporterRecording: true
-    prometheus: true
-    prometheusOperator: true
-grafana:
-  adminPassword: admin-password
-  enabled: true
-  defaultDashboardsTimezone: cst
-  serviceMonitor:
-    enabled: true
-  service:
-    type: LoadBalancer
-  persistence:
-    enabled: true
-  persistence:
-    storageClassName: local-path	
-prometheus:
-  thanosService:
-    enabled: true
-  service:
-    type: LoadBalancer
-  prometheusSpec:
-    retention: 365d
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: local-path
-          resources:
-            requests:
-              storage: 2Gi
-    additionalScrapeConfigs:
-      - job_name: "nginx-exporter"
-        scrape_interval: 15s
-        static_configs:
-          - targets: [ '172.27.0.15:9113' ]
-kubeScheduler:
-  enabled: true
-kubeProxy:
-  enabled: true
-kubeStateMetrics:
-  enabled: true
-kube-state-metrics:
-  selfMonitor:
-    enabled: true
-kubeEtcd:
-  enabled: true
-  endpoints:
-    - 172.27.0.6
-    - 172.27.0.7
-    - 172.27.0.8
-  service:
-    port: 2381
-    targetPort: 2381
-alertmanager:
-  enabled: true
-  config:
-    global:
-      resolve_timeout: 5m
-    route:
-      receiver: 'email_router'
-      group_by: ['cluster','alertname']
-      routes:
-        - receiver: 'email'
-          matchers:
-            - alertname =~ "InfoInhibitor|Watchdog"
-    receivers:
-      - name: 'email_router'
-        email_configs:
-          - to: '@qq.com'
-            from: '@qq.com'
-            smarthost: smtp.qq.com:465
-            auth_username: '@qq.com'
-            auth_password: ''
-            send_resolved: true
-            require_tls: false
-    templates:
-    - '/etc/alertmanager/config/*.tmpl'
-  templateFiles:
-    template_1.tmpl: |-
-        {{ define "email.from" }}@qq.com{{ end }}
-        {{ define "email.to" }}@qq.com{{ end }}
-        {{ define "email.to.html" }}
-        {{ range .Alerts }}
-        =========start==========<br>
-        告警程序: prometheus_alert <br>
-        告警级别: {{ .Labels.severity }} 级 <br>
-        告警类型: {{ .Labels.alertname }} <br>
-        故障主机: {{ .Labels.instance }} <br>
-        告警主题: {{ .Annotations.summary }} <br>
-        告警详情: {{ .Annotations.description }} <br>
-        触发时间: {{ ($alert.StartsAt.Add 28800e9).Format "2019-08-04 16:58:15" }} <br>
-        =========end==========<br>
-        {{ end }}
-        {{ end }}
-  service:
-    type: LoadBalancer
-  tplConfig: true
-  alertmanagerSpec:
-    storage:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: local-path
-          resources:
-            requests:
-              storage: 2Gi
-EOF
-```
-
-### 六、启动thaons
-
-```javascript
-helm install thanos -f ./thanos.yaml bitnami/thanos -n monitoring
-```
-
-### 七、页面设置添加thanos新地址
-
-```javascript
-http://thanos-query-frontend.monitoring:9090/
-```
-
-### 八、部署loki
-
-```javascript
-helm repo add grafana https://grafana.github.io/helm-charts
-helm install loki grafana/loki-stack --set grafana.enabled=true,prometheus.enabled=true,prometheus.alertmanager.persistentVolume.enabled=true,prometheus.server.persistentVolume.enabled=true,loki.persistence.enabled=true,loki.persistence.storageClassName=local-path,loki.persistence.size=5Gi -n monitoring
-kubectl get secret --namespace monitoring loki-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
