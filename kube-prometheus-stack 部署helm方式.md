@@ -70,9 +70,9 @@ alertmanager:
     route:
       receiver: 'Default'
       group_by: ['alertname', 'cluster']
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 12h
+      group_wait: 5s
+      group_interval: 1m
+      repeat_interval: 1h
       routes:
         - matchers:
             - alertname = "Watchdog"
@@ -92,28 +92,14 @@ alertmanager:
       {{ define "email.html" }}
       <html>
         <body>
-          {{- if gt (len .Alerts.Firing) 0 -}}
-          {{- range $index, $alert := .Alerts -}}
+          {{- range $index, $alert := .Alerts.Firing -}}
             <p>========= ERROR ==========</p>
-            <h3 style="color:red;">告警名称: {{ .Labels.alertname }}</h3>
-            <p>告警级别: {{ .Labels.severity }}</p>
-            <p>告警机器: {{ .Labels.instance }} {{ .Labels.device }}</p>
-            <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>告警时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
+            <h3 style="color:red;">告警名称: {{ $alert.Labels.alertname }}</h3>
+            <p>告警级别: {{ $alert.Labels.severity }}</p>
+            <p>告警机器: {{ $alert.Labels.instance }} {{ $alert.Labels.device }}</p>
+            <p>告警详情: {{ $alert.Annotations.summary }}</p>
+            <p>告警时间: {{ ($alert.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
             <p>========= END ==========</p>
-          {{- end }}
-          {{- end }}
-          {{- if gt (len .Alerts.Resolved) 0 -}}
-          {{- range $index, $alert := .Alerts -}}
-            <p>========= INFO ==========</p>
-            <h3 style="color:green;">告警名称: {{ .Labels.alertname }}</h3>
-            <p>告警级别: {{ .Labels.severity }}</p>
-            <p>告警机器: {{ .Labels.instance }}</p>
-            <p>告警详情: {{ .Annotations.summary }}</p>
-            <p>恢复时间: {{ (.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
-            <p>故障时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}</p>
-            <p>========= END ==========</p>
-          {{- end }}
           {{- end }}
         </body>
       </html>
