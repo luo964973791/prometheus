@@ -345,13 +345,13 @@ curl -X POST http://$(kubectl get svc -n monitoring | grep prometheus-kube-prome
 kubectl logs -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -c thanos-sidecar
 ```
 
+```
 #监控nginx
 helm install nginx-export -n monitoring \
   --set nginxServer="http://nginx-service.nginx.svc.cluster.local/stub_status" \
   --set serviceMonitor.enabled=true \
   prometheus-community/prometheus-nginx-exporter
 ```
-
 
 ### 四、访问grafana
 
