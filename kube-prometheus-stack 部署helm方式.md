@@ -70,8 +70,8 @@ alertmanager:
     route:
       receiver: 'Default'
       group_by: ['alertname', 'cluster']
-      group_wait: 5s
-      group_interval: 1m
+      group_wait: 30s
+      group_interval: 5m
       repeat_interval: 1h
       routes:
         - matchers:
