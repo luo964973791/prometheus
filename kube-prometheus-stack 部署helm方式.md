@@ -107,7 +107,7 @@ alertmanager:
       </html>
       {{- end }}
   alertmanagerSpec:
-    logLevel: debug
+    logLevel: info
     replicas: 1
     storage:
       volumeClaimTemplate:
