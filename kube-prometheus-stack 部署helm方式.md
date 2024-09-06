@@ -12,6 +12,7 @@ prometheus:
   service:
     type: LoadBalancer
   prometheusSpec:
+    logLevel: info
     replicas: 2
     retention: 12h
     storageSpec:
