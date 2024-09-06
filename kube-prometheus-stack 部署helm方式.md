@@ -60,31 +60,33 @@ alertmanager:
   config:
     global:
       resolve_timeout: 5m
-      smtp_from: '456@qq.com'
+      smtp_from: '1145@qq.com'
       smtp_smarthost: 'smtp.qq.com:465'
-      smtp_auth_username: '456@qq.com'
-      smtp_auth_password: 'kl'
+      smtp_auth_username: '1145@qq.com'
+      smtp_auth_password: 'krlwmlvml'
       smtp_require_tls: false
     templates:
       - '/etc/alertmanager/config/*.tmpl'
     route:
       receiver: 'Default'
       group_by: ['alertname', 'cluster']
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 1h
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 1m
       routes:
         - matchers:
-            - alertname = "Watchdog"
-          receiver: null
+            - alertname=~"^(Watchdog)$"
+          receiver: 'null-receiver'
+        - receiver: 'Default'
     receivers:
       - name: 'Default'
         email_configs:
-          - to: '123@qq.com'
-            send_resolved: true
+          - to: '9649@qq.com'
+            send_resolved: false
             headers:
               subject: "{{ .CommonLabels.subject }}"
             html: '{{ template "email.html" . }}'
+      - name: 'null-receiver'
         
   tplConfig: false  # 保持为 false，不让 Helm 模板引擎处理 Alertmanager 模板语法
   templateFiles:
