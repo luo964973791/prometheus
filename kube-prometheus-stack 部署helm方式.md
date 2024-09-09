@@ -108,6 +108,7 @@ alertmanager:
       </html>
       {{- end }}
   alertmanagerSpec:
+    forceEnableClusterMode: true
     logLevel: info
     replicas: 1
     storage:
