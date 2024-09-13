@@ -10,6 +10,7 @@ groups:
         severity: page
       annotations:
         summary: NGINX service is down
+        description: The Nginx instance {{ $labels.instance }} is dead.
 
     - alert: NginxHighErrorRate
       expr: sum(rate(nginx_http_requests_total{status=~"5.*"}[5m])) / sum(rate(nginx_http_requests_total[5m])) * 100 > 5
