@@ -7,7 +7,7 @@ groups:
       expr: nginx_up{job="nginx"} == 0
       for: 5m
       labels:
-        severity: page
+        severity: warning
       annotations:
         summary: NGINX service is down
         description: The Nginx instance {{ $labels.instance }} is dead.
