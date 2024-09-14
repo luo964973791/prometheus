@@ -72,8 +72,8 @@ alertmanager:
       receiver: 'Default'
       group_by: ['alertname', 'cluster']
       group_wait: 10s
-      group_interval: 1m
-      repeat_interval: 1m
+      group_interval: 10s
+      repeat_interval: 10s
       routes:
         - matchers:
             - alertname=~"^(Watchdog)$"
