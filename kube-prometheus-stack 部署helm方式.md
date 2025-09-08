@@ -355,6 +355,7 @@ kubectl logs -n monitoring prometheus-prometheus-kube-prometheus-prometheus-0 -c
 helm install nginx-export -n monitoring \
   --set nginxServer="http://nginx-service.nginx.svc.cluster.local/stub_status" \
   --set serviceMonitor.enabled=true \
+  --set serviceMonitor.additionalLabels.release=prometheus \
   prometheus-community/prometheus-nginx-exporter
 ```
 
@@ -375,3 +376,4 @@ user = @qq.com
 password = 
 from_address = @qq.com
 ```
+
