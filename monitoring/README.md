@@ -90,6 +90,7 @@ docker-compose logs alertmanager
 3. 添加 Prometheus 数据源
 4. 配置查询和可视化
 
+### 监控新node节点
 ```javascript
 docker run -d \
   --name node-exporter \
