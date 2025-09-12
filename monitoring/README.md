@@ -9,6 +9,9 @@
 ### 启动服务
 ```javascript
 # 启动所有监控服务
+chmod -R 777 prometheus/data
+chmod -R 777 alertmanager/data
+chmod -R 777 grafana/data
 docker-compose up -d
 
 # 查看服务状态
