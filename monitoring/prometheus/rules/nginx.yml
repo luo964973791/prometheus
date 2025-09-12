@@ -1,11 +1,11 @@
 groups:
-- name: 172-27-0-5-nginx rules
+- name: nginx rules
   rules:
 
 #--------------------------------------------------------------------------nginx-----------------------------------------------------------------------------------
     - alert: NginxIsDown
       expr: nginx_up{job="nginx"} == 0
-      for: 5m
+      for: 1m
       labels:
         severity: warning
       annotations:
@@ -14,7 +14,7 @@ groups:
 
     - alert: NginxHighErrorRate
       expr: sum(rate(nginx_http_requests_total{status=~"5.*"}[5m])) / sum(rate(nginx_http_requests_total[5m])) * 100 > 5
-      for: 5m
+      for: 1m
       labels:
         severity: warning
       annotations:
@@ -23,7 +23,7 @@ groups:
 
     - alert: NginxSlowResponseTime
       expr: avg(nginx_http_request_duration_seconds_bucket{le="1"} / sum(nginx_http_request_duration_seconds_count)) > 0.05
-      for: 5m
+      for: 1m
       labels:
         severity: warning
       annotations:
@@ -32,7 +32,7 @@ groups:
 
     - alert: NginxHighConnections
       expr: nginx_connections{state="active"} > 100
-      for: 5m
+      for: 1m
       labels:
         severity: warning
       annotations:
@@ -41,7 +41,7 @@ groups:
 
     - alert: NginxLongQueue
       expr: nginx_http_queue_length > 10
-      for: 5m
+      for: 1m
       labels:
         severity: warning
       annotations:

@@ -1,0 +1,20 @@
+groups:
+  - name: kafka-alerts
+    rules:
+      - alert: KafkaExporterDown
+        expr: up{job="kafka_exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka Exporter down"
+          description: "kafka-exporter target {{ $labels.instance }} is down."
+
+      - alert: KafkaConsumerGroupLagHigh
+        expr: max by (consumergroup) (kafka_consumergroup_lag) > 10000
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High consumer group lag"
+          description: "Consumer group {{ $labels.consumergroup }} lag > 10k for 10m"
