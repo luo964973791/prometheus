@@ -226,17 +226,101 @@ additionalPrometheusRules:
             description: "Apache has just been restarted.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 #--------------------------------------------------------------------------httpd-----------------------------------------------------------------------------------
 
+#--------------------------------------------------------------------------kafka-----------------------------------------------------------------------------------
+  - name: kafka-cluster-monitoring-jmx-kafka-exporter
+    groups:
+      - name: kafka-cluster-monitoring-jmx-kafka-exporter
+        rules:
+          - alert: "kafka集群脑裂"
+            expr: sum(kafka_controller_kafkacontroller_activecontrollercount_value{env="172.27.0.6-redis-cluster"}) by (env) > 1
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              description: '激活状态的控制器数量为{{$value}}，集群可能出现脑裂'
+              summary: '{{$labels.env}} 集群出现脑裂，请检查集群之前的网络'
+          - alert: "kafka集群没有活跃的控制器"
+            expr: sum(kafka_controller_kafkacontroller_activecontrollercount_value{env="172.27.0.6-redis-cluster"}) by (env) < 1
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              description: '激活状态的控制器数量为{{$value}}，没有活跃的控制器'
+              summary: '{{$labels.env}} 集群没有活跃的控制器，集群可能无法正常管理'
+          - alert: "kafka节点异常"
+            expr: count(kafka_server_replicamanager_total_leadercount_value{env="172.27.0.6-redis-cluster"}) by (env) < 3
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              description: '{{$labels.env}} 集群的节点挂了，当前可用节点：{{$value}}'
+              summary: '{{$labels.env}} 集群的节点挂了'
+          - alert: "kafka集群出现leader不在首选副本上的分区"
+            expr: sum(kafka_controller_kafkacontroller_preferredreplicaimbalancecount_value{env="172.27.0.6-redis-cluster"}) by (env) > 0
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              description: '{{$labels.env}} 集群出现leader不在首选副本上的分区，数量：{{$value}}'
+              summary: '{{$labels.env}} 集群出现leader不在首选副本上的分区，分区副本负载不均衡，考虑使用kafka-preferred-replica-election脚本校正'
+          - alert: "kafka集群离线分区数量大于0"
+            expr: sum(kafka_controller_kafkacontroller_offlinepartitionscount_value{env="172.27.0.6-redis-cluster"}) by (env) > 0
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              description: '{{$labels.env}} 集群离线分区数量大于0，数量：{{$value}}'
+              summary: '{{$labels.env}} 集群离线分区数量大于0'
+          - alert: "kafka集群未保持同步的分区数大于0"
+            expr: sum(kafka_server_replicamanager_total_underreplicatedpartitions_value{env="172.27.0.6-redis-cluster"}) by (env) > 0
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              description: '{{$labels.env}} 集群未保持同步的分区数大于0，数量：{{$value}}'
+              summary: '{{$labels.env}} 集群未保持同步的分区数大于0，可能丢失消息'
+          - alert: "kafka节点所在主机的CPU使用率过高"
+            expr: irate(process_cpu_seconds_total{env="172.27.0.6-redis-cluster"}[5m])*100 > 50
+            for: 10s
+            labels:
+              severity: warning
+            annotations:
+              description: '{{$labels.env}} 集群CPU使用率过高，主机：{{$labels.instance}}，当前CPU使用率：{{$value}}'
+              summary: '{{$labels.env}} 集群CPU使用率过高'
+          - alert: "kafka集群消息积压告警"
+            expr: sum(consumer_lag{env="172.27.0.6-redis-cluster"}) by (groupId, topic, env) > 20000
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              description: '{{$labels.env}} 集群出现消息积压，消费组：{{$labels.groupId}}，topic：{{$labels.topic}}，当前积压值：{{$value}}'
+              summary: '{{$labels.env}} 集群出现消息积压'
+#--------------------------------------------------------------------------kafka-----------------------------------------------------------------------------------
+
 
 
     additionalScrapeConfigs:
       - job_name: "172-27-0-3-nginx-exporter"
-        scrape_interval: 15s
         static_configs:
           - targets: [ '172.27.0.3:9113' ]
+            labels:
+              env: "172.27.0.6-nginx-cluster"
+
       - job_name: "172-27-0-4-apache-exporter"
         scrape_interval: 15s
         static_configs:
           - targets: [ '172.27.0.4:9117' ]
+            labels:
+              env: "172.27.0.6-apache-cluster"
+
+      - job_name: "kafka-jmx"
+        metrics_path: '/metrics'
+        static_configs: 
+          - targets: [ '172.27.0.6:6660' ]
+            labels:
+              env: "172.27.0.6-redis-cluster"
+
+
 
 ####################################################################################
 helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring -f ./values.yaml
@@ -376,4 +460,5 @@ user = @qq.com
 password = 
 from_address = @qq.com
 ```
+
 
